@@ -1,0 +1,6 @@
+ex00 header ft.h -
+ex01 header ft_boolean.h -
+ex02 header ft_abs.h -
+ex03 header ft_point.h -
+ex04 func ft_strs_to_tab.c malloc,free
+ex05 func ft_show_tab.c write

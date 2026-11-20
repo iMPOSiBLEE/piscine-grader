@@ -1,0 +1,6 @@
+ex00 func ft_strcmp.c -
+ex01 func ft_strncmp.c -
+ex02 func ft_strcat.c -
+ex03 func ft_strncat.c -
+ex04 func ft_strstr.c -
+ex05 func ft_strlcat.c -

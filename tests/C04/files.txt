@@ -1,0 +1,6 @@
+ex00 func ft_strlen.c -
+ex01 func ft_putstr.c write
+ex02 func ft_putnbr.c write
+ex03 func ft_atoi.c -
+ex04 func ft_putnbr_base.c write
+ex05 func ft_atoi_base.c -

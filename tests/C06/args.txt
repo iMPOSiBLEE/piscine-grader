@@ -1,0 +1,6 @@
+
+test1 test2 test3
+hello
+b a C "" abc ab B 42 "hello world"
+zz z zzz Z
+"multi word" "a b c"
