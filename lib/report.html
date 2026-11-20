@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piscine Grader</title>
+<style>
+:root{
+  --bg:#0d1117;--panel:#161b22;--panel2:#1c2230;--line:#2a3140;--ink:#e6edf3;--mute:#8b949e;
+  --ok:#3fb950;--okbg:rgba(63,185,80,.12);--ko:#f85149;--kobg:rgba(248,81,73,.12);
+  --warn:#d29922;--accent:#58a6ff;--add:rgba(63,185,80,.16);--del:rgba(248,81,73,.14);
+  --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",Sarabun,sans-serif;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:18px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#58a6ff,#a371f7);display:grid;place-items:center;font-style:normal;font-size:14px}
+.meta{color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.stats{display:flex;gap:10px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-align:center;min-width:92px}
+.stat b{display:block;font-size:18px} .stat span{font-size:11px;color:var(--mute)}
+.stat.good b{color:var(--ok)} .stat.bad b{color:var(--ko)}
+main{flex:1;display:flex;min-height:0}
+aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;background:var(--panel)}
+.ex{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-left:3px solid transparent}
+.ex:hover{background:var(--panel2)} .ex.sel{background:var(--panel2);border-left-color:var(--accent)}
+.ex .d{width:9px;height:9px;border-radius:50%;flex:none} .ex.ok .d{background:var(--ok)} .ex.ko .d{background:var(--ko)}
+.ex .n{font-weight:700;font-family:var(--mono)} .ex .f{color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.ex .c{font-size:11px;color:var(--mute)}
+.content{flex:1;overflow:auto;padding:22px 28px 80px}
+.title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.title h2{margin:0;font-family:var(--mono);font-size:22px}
+.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px}
+.badge.ok{background:var(--okbg);color:var(--ok)} .badge.ko{background:var(--kobg);color:var(--ko)}
+.files{color:var(--mute);font-family:var(--mono);font-size:13px}
+.section{margin-top:18px}
+.section h3{font-size:12px;letter-spacing:.6px;color:var(--mute);margin:0 0 8px;text-transform:uppercase}
+.iss{display:flex;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:6px;cursor:default}
+.iss.link{cursor:pointer} .iss.link:hover{border-color:var(--accent)}
+.iss .k{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--panel2);color:var(--warn);white-space:nowrap;height:fit-content}
+.iss .t{font-weight:600} .iss .w{color:var(--mute);font-size:12px;white-space:pre-wrap;font-family:var(--mono)} .iss .h{color:var(--accent);font-size:13px}
+.iss .fx{font-size:11px;color:var(--ok);margin-left:6px}
+.cases{display:grid;gap:6px}
+.case{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 12px}
+.case .nm{font-family:var(--mono);font-size:13px} .case.ok .nm{color:var(--mute)} .case.ko .nm{color:var(--ko)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.cmp div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all}
+.cmp label{display:block;font:700 11px sans-serif;margin-bottom:2px} .cmp .e label{color:var(--ok)} .cmp .g label{color:var(--ko)}
+.hint{border:1px solid rgba(88,166,255,.35);background:rgba(88,166,255,.08);border-radius:10px;padding:10px 14px;margin-bottom:6px}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;width:fit-content}
+.tabs button{background:none;border:0;color:var(--mute);padding:6px 14px;border-radius:7px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.tabs button.on{background:var(--panel2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.tabs button:disabled{opacity:.35;cursor:not-allowed}
+.kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--mute)}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.editor{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0f14}
+.ed-head{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;color:var(--mute)}
+.ed-head .dots i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.code{font-family:var(--mono);font-size:13px;line-height:1.6;overflow-x:auto}
+.ln{display:flex;min-width:fit-content}
+.ln .no{width:48px;flex:none;text-align:right;padding-right:14px;color:#484f58;user-select:none}
+.ln .tx{white-space:pre;padding-right:20px;tab-size:4;-moz-tab-size:4}
+.ln.err{background:var(--del)} .ln.err .no{color:var(--ko)}
+.ln.add{background:var(--add)} .ln.add .no{color:var(--ok)}
+.note{margin:2px 14px 6px 62px;padding:7px 12px;border-radius:8px;font-family:-apple-system,"Noto Sans Thai",sans-serif;font-size:13px;border-left:3px solid var(--ko);background:var(--panel2)}
+.note b{color:var(--ko)} .note .h{color:var(--accent)}
+.tok-k{color:#ff7b72} .tok-t{color:#79c0ff} .tok-s{color:#a5d6ff} .tok-c{color:#8b949e;font-style:italic} .tok-n{color:#d2a8ff} .tok-p{color:#ffa657} .tok-f{color:#d2a8ff}
+.callout{border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px}
+.callout.good{background:var(--okbg);border:1px solid rgba(63,185,80,.35)}
+.callout.info{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.35)}
+.callout.warn{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.4)}
+.empty{color:var(--mute);padding:30px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+.foot{color:var(--mute);font-size:12px;margin-top:26px}
+@media(max-width:760px){aside{display:none}.stats{display:none}.cmp{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><i>◆</i>PISCINE GRADER</div>
+  <div class="meta" id="meta"></div>
+  <div class="stats" id="stats"></div>
+</header>
+<main>
+  <aside id="side"></aside>
+  <div class="content" id="content"></div>
+</main>
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const R = D.results;
+const K = D.kinds;
+let cur = Math.max(0, R.findIndex(r => r.status !== 'OK'));
+let view = 0;           // 0 = โค้ดเดิม, 1 = แบบที่แก้แล้ว/คำใบ้, 2 = เฉลย
+let fileIdx = 0;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- syntax highlight (C) ----------
+const KW = /\b(if|else|while|return|for|do|switch|case|break|continue|sizeof|typedef|struct|static|const|unsigned|signed|include|define|ifndef|endif)\b/;
+const TY = /\b(int|char|void|long|short|float|double|size_t|t_\w+)\b/;
+function hl(line){
+  const out=[]; let i=0;
+  const rx=/(\/\*.*?\*\/|\/\*.*$|^\s*\*.*$|\/\/.*$)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#\s*\w+)|(\b\d+\b)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)/g;
+  let m, last=0;
+  while((m=rx.exec(line))){
+    out.push(esc(line.slice(last,m.index)));
+    if(m[1]) out.push(`<span class="tok-c">${esc(m[1])}</span>`);
+    else if(m[2]) out.push(`<span class="tok-s">${esc(m[2])}</span>`);
+    else if(m[3]) out.push(`<span class="tok-p">${esc(m[3])}</span>`);
+    else if(m[4]) out.push(`<span class="tok-n">${esc(m[4])}</span>`);
+    else if(m[5]) out.push(KW.test(m[5])?`<span class="tok-k">${esc(m[5])}</span>`:`<span class="tok-f">${esc(m[5])}</span>`);
+    else if(m[6]) out.push(TY.test(m[6])?`<span class="tok-t">${esc(m[6])}</span>`:KW.test(m[6])?`<span class="tok-k">${esc(m[6])}</span>`:esc(m[6]));
+    last=rx.lastIndex;
+  }
+  out.push(esc(line.slice(last)));
+  return out.join('');
+}
+
+// ---------- line diff (LCS) เพื่อทำเครื่องหมายบรรทัดที่เปลี่ยน ----------
+function changedLines(a, b){
+  const A=a.split('\n'), B=b.split('\n'), n=A.length, m=B.length;
+  const dp=Array.from({length:n+1},()=>new Int32Array(m+1));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  const add=new Set(); let i=0,j=0;
+  while(i<n&&j<m){ if(A[i]===B[j]){i++;j++;} else if(dp[i+1][j]>=dp[i][j+1]) i++; else {add.add(j);j++;} }
+  while(j<m){add.add(j);j++;}
+  return add;
+}
+
+// ---------- render ----------
+function stats(){
+  const pass=R.filter(r=>r.status==='OK').length;
+  const first=(R.find(r=>r.status!=='OK')||{}).ex||'—';
+  document.getElementById('meta').innerHTML=`<b style="color:var(--ink)">${esc(D.proj)}</b> · ${esc(D.root)} · ${esc(D.time)}`;
+  document.getElementById('stats').innerHTML=
+    `<div class="stat ${pass===R.length?'good':'bad'}"><b>${pass}/${R.length}</b><span>ข้อที่ผ่าน</span></div>`+
+    `<div class="stat"><b>${esc(D.last_ok)}</b><span>Moulinette ถึง</span></div>`+
+    `<div class="stat ${first==='—'?'good':'bad'}"><b>${esc(first)}</b><span>ข้อแรกที่พัง</span></div>`;
+}
+function side(){
+  document.getElementById('side').innerHTML=R.map((r,i)=>{
+    const ok=r.status==='OK', n=r.cases.length, p=r.cases.filter(c=>c.ok).length;
+    return `<div class="ex ${ok?'ok':'ko'} ${i===cur?'sel':''}" onclick="sel(${i})"><span class="d"></span><span class="n">${r.ex}</span><span class="f">${esc(r.files.join(', '))}</span><span class="c">${n?p+'/'+n:''}</span></div>`;
+  }).join('');
+}
+function sel(i){cur=i;view=0;fileIdx=0;side();render();document.getElementById('content').scrollTop=0;}
+function available(r){
+  const hasFix = r.fixed && Object.keys(r.fixed).length;
+  const hasLogic = r.issues.some(x=>x.kind==='logic'||x.kind==='crash') || (r.after_fix && r.after_fix.tests===false);
+  const hasSol = r.solution && Object.keys(r.solution).length;
+  return {fix: hasFix || r.hints.length, sol: hasSol && (hasLogic || r.status!=='OK')};
+}
+function cycle(){
+  const r=R[cur], a=available(r);
+  const order=[0]; if(a.fix) order.push(1); if(a.sol) order.push(2);
+  view=order[(order.indexOf(view)+1)%order.length]; render();
+}
+function setView(v){view=v;render();}
+
+function codeBlock(fname, text, notes, added){
+  const lines=text.replace(/\n$/,'').split('\n');
+  const byLine={};
+  (notes||[]).forEach(n=>{ if(n.line) (byLine[n.line]=byLine[n.line]||[]).push(n); });
+  let h='';
+  lines.forEach((l,i)=>{
+    const no=i+1, err=byLine[no], ad=added&&added.has(i);
+    h+=`<div class="ln ${err?'err':''} ${ad?'add':''}" id="L${no}"><span class="no">${no}</span><span class="tx">${hl(l)||' '}</span></div>`;
+    if(err) err.forEach(n=>{
+      const k=K[n.kind]||['',''];
+      h+=`<div class="note">${k[0]} <b>${esc(n.title)}</b>${n.hint?` <span class="h">→ ${esc(n.hint)}</span>`:''}${n.why&&n.kind!=='norm'?`<div style="color:var(--mute);font-size:12px;font-family:var(--mono)">${esc(n.why)}</div>`:''}</div>`;
+    });
+  });
+  return `<div class="editor"><div class="ed-head"><span class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>${esc(fname)}</div><div class="code">${h}</div></div>`;
+}
+
+function render(){
+  const r=R[cur], ok=r.status==='OK', a=available(r);
+  let h=`<div class="title"><h2>${r.ex}</h2><span class="badge ${ok?'ok':'ko'}">${ok?'ผ่าน':'ไม่ผ่าน · '+esc(r.status)}</span><span class="files">${esc(r.files.join(', '))}</span></div>`;
+
+  // ปัญหาที่ไม่ผูกกับบรรทัด
+  const loose=r.issues.filter(x=>!x.line && x.kind!=='logic');
+  if(loose.length){
+    h+=`<div class="section"><h3>ปัญหา</h3>`+loose.map(x=>{const k=K[x.kind];return `<div class="iss"><span class="k">${k[0]} ${k[1]}</span><div><div class="t">${esc(x.title)}${x.fixable?'<span class="fx">● แก้อัตโนมัติได้</span>':''}</div>${x.why?`<div class="w">${esc(x.why)}</div>`:''}${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`}).join('')+`</div>`;
+  }
+  const lined=r.issues.filter(x=>x.line);
+  if(lined.length){
+    h+=`<div class="section"><h3>จุดที่ผิดในโค้ด (${lined.length})</h3>`+lined.slice(0,40).map(x=>{const k=K[x.kind];return `<div class="iss link" onclick="jump(${x.line},'${esc(x.file||'')}')"><span class="k">${k[0]} ${k[1]}</span><div><div class="t">บรรทัด ${x.line}: ${esc(x.title)}${x.fixable?'<span class="fx">● แก้อัตโนมัติได้</span>':''}</div>${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`}).join('')+`</div>`;
+  }
+  // เคสทดสอบ
+  if(r.cases.length){
+    const bad=r.cases.filter(c=>!c.ok), good=r.cases.filter(c=>c.ok);
+    h+=`<div class="section"><h3>ผลทดสอบ ${good.length}/${r.cases.length}</h3><div class="cases">`+
+      bad.map(c=>`<div class="case ko"><div class="nm">✕ ${esc(c.name)}</div><div class="cmp"><div class="e"><label>ควรได้</label>${esc(c.exp)}</div><div class="g"><label>ได้จริง</label>${esc(c.got)}</div></div></div>`).join('')+
+      (good.length?`<details><summary style="cursor:pointer;color:var(--mute);font-size:13px;margin-top:4px">ดูเคสที่ผ่าน (${good.length})</summary>`+good.map(c=>`<div class="case ok"><div class="nm">✓ ${esc(c.name)}</div></div>`).join('')+`</details>`:'')+
+      `</div></div>`;
+  }
+
+  // ส่วนโค้ด + Tab
+  const files=Object.keys(r.sources).length?Object.keys(r.sources):Object.keys(r.solution||{});
+  if(files.length){
+    if(fileIdx>=files.length) fileIdx=0;
+    const fn=files[fileIdx];
+    h+=`<div class="section"><h3>โค้ด</h3><div class="bar"><div class="tabs">
+      <button class="${view===0?'on':''}" onclick="setView(0)">โค้ดเดิม</button>
+      <button class="${view===1?'on':''}" ${a.fix?'':'disabled'} onclick="setView(1)">${r.fixed&&Object.keys(r.fixed).length?'แบบที่แก้แล้ว':'คำใบ้'}</button>
+      <button class="${view===2?'on':''}" ${a.sol?'':'disabled'} onclick="setView(2)">เฉลย</button>
+    </div><span class="kbd">Tab</span><span style="color:var(--mute);font-size:12px">สลับมุมมอง · <span class="kbd">↑</span><span class="kbd">↓</span> เปลี่ยนข้อ</span>
+    ${files.length>1?files.map((f,i)=>`<button onclick="fileIdx=${i};render()" style="background:${i===fileIdx?'var(--panel2)':'none'};border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:12px">${esc(f)}</button>`).join(''):''}</div>`;
+    const src=r.sources[fn]||'';
+    if(view===0){
+      if(src) h+=codeBlock(fn, src, r.issues.filter(x=>x.line && (!x.file || x.file===fn)), null);
+      else h+=`<div class="empty">ไม่มีไฟล์ ${esc(fn)} — กด Tab เพื่อดูเฉลย</div>`;
+    } else if(view===1){
+      if(r.hints.length) h+=r.hints.map(t=>`<div class="hint">💡 ${esc(t)}</div>`).join('');
+      (r.renames||[]).forEach(([a,b])=>{h+=`<div class="callout good">📁 เปลี่ยนชื่อ <b>${esc(a)}</b> → <b>${esc(b)}</b></div>`;});
+      (r.deletes||[]).forEach(d=>{h+=`<div class="callout good">🗑 ลบไฟล์เกิน <b>${esc(d)}</b></div>`;});
+      if(r.fixed && r.fixed[fn]){
+        const af=r.after_fix||{};
+        const st=[af.norm===true?'✅ norm ผ่าน':af.norm===false?'⚠️ norm ยังเหลือ: '+esc((af.norm_left||[]).join(' · ')):'',
+                  af.compile?'✅ คอมไพล์ผ่าน':'⚠️ คอมไพล์ยังไม่ผ่าน', af.tests?'✅ เทสต์ผ่านหมด':'⚠️ เทสต์ยังไม่ผ่าน → ต้องแก้ logic เอง (กด Tab อีกทีดูเฉลย)'].filter(Boolean).join('<br>');
+        h+=`<div class="callout ${af.tests?'good':'warn'}"><b>หลังแก้อัตโนมัติ:</b><br>${st}</div>`;
+        h+=codeBlock(fn+'  (แก้แล้ว — บรรทัดสีเขียวคือที่เปลี่ยน)', r.fixed[fn], [], changedLines(src, r.fixed[fn]));
+      } else if(!r.hints.length){
+        h+=`<div class="empty">ไม่มีอะไรต้องแก้อัตโนมัติ</div>`;
+      } else {
+        h+=`<div class="callout info">ลองแก้เองตามคำใบ้ก่อน ถ้ายังไม่ได้กด <span class="kbd">Tab</span> อีกครั้งเพื่อดูเฉลย</div>`;
+      }
+    } else {
+      const sol=(r.solution||{})[fn];
+      h+=`<div class="callout info">📘 ตัวอย่างโค้ดที่ถูก (ไม่รวม header) ใช้เทียบว่าต่างจากของเดิมตรงไหน แล้วลองเขียนเองอีกรอบ</div>`;
+      h+= sol ? codeBlock(fn+'  (เฉลย)', sol, [], src?changedLines(src.split('\n').slice(has42(src)?12:0).join('\n'), sol):null) : `<div class="empty">ไม่มีเฉลยสำหรับไฟล์นี้</div>`;
+    }
+    h+=`</div>`;
+  }
+  if(ok && !r.issues.length) h+=`<div class="callout good">✔ ข้อนี้ผ่านทุกอย่าง เก่งมาก!</div>`;
+  h+=`<p class="foot">ตัวตรวจช่วยดูผลเท่านั้น ตอน evaluate ยังต้องอ่านโค้ดกับเพื่อน และให้เขาอธิบายตามใบประเมิน</p>`;
+  document.getElementById('content').innerHTML=h;
+}
+function has42(t){return /By:/.test(t.split('\n').slice(0,12).join('\n'));}
+function jump(line,file){
+  const r=R[cur]; const files=Object.keys(r.sources);
+  if(file&&files.includes(file)) fileIdx=files.indexOf(file);
+  view=0; render();
+  const el=document.getElementById('L'+line); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();cycle();}
+  else if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();sel(Math.min(R.length-1,cur+1));}
+  else if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();sel(Math.max(0,cur-1));}
+});
+(function(){const m=location.hash.match(/#(ex\d+)(?:\/(\d))?/); if(m){const i=R.findIndex(r=>r.ex===m[1]); if(i>=0)cur=i; if(m[2])view=+m[2];}})();
+stats(); side(); render();
+</script>
+</body>
+</html>

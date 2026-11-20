@@ -1,0 +1,50 @@
+{
+ "ex00": [
+  {
+   "match": "*",
+   "hint": "วนจนกว่าตัวจะต่างกันหรือเจอ '\\0' แล้ว return s1[i] - s2[i]"
+  }
+ ],
+ "ex01": [
+  {
+   "match": ", 0\\)",
+   "hint": "n = 0 ต้อง return 0 ทันที"
+  },
+  {
+   "match": "*",
+   "hint": "เหมือน strcmp แต่หยุดเมื่อเทียบครบ n ตัว"
+  }
+ ],
+ "ex02": [
+  {
+   "match": "*",
+   "hint": "หาจุดจบของ dest ก่อน แล้วก๊อป src ต่อท้าย ปิดด้วย '\\0' แล้ว return dest"
+  }
+ ],
+ "ex03": [
+  {
+   "match": "*",
+   "hint": "ต่อท้ายไม่เกิน nb ตัว และต้องปิดด้วย '\\0' เสมอ"
+  }
+ ],
+ "ex04": [
+  {
+   "match": "\"\"\\)",
+   "hint": "to_find ว่าง ต้อง return str"
+  },
+  {
+   "match": "*",
+   "hint": "ทุกตำแหน่ง i ลองเทียบ to_find ทั้งคำ ถ้าตรงครบ return &str[i] ถ้าไม่เจอ return 0 (NULL)"
+  }
+ ],
+ "ex05": [
+  {
+   "match": "return",
+   "hint": "ค่าที่ return = strlen(src) + min(size, strlen(dest)) ถ้า size <= ความยาว dest ให้ return size + strlen(src)"
+  },
+  {
+   "match": "*",
+   "hint": "ต่อท้ายได้จนความยาวรวมถึง size - 1 แล้วปิดด้วย '\\0'"
+  }
+ ]
+}
