@@ -1,0 +1,9 @@
+{"binary": "ft_display_file", "rules": ["all", "clean", "fclean"], "cases": [
+ {"args": [], "stdout": "", "stderr": "File name missing.\n"},
+ {"args": ["small.txt", "big.txt"], "stdout": "", "stderr": "Too many arguments.\n"},
+ {"args": ["nofile"], "stdout": "", "stderr": "Cannot read file.\n"},
+ {"args": ["small.txt"], "ref": "cat", "check_stderr": false},
+ {"args": ["big.txt"], "ref": "cat", "check_stderr": false},
+ {"args": ["empty.txt"], "ref": "cat", "check_stderr": false},
+ {"args": ["bin.dat"], "ref": "cat", "check_stderr": false}
+]}

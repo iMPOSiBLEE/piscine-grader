@@ -2,49 +2,58 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "malloc(ความยาว + 1) แล้วก๊อปพร้อม '\\0'"
+   "hint": "malloc(ความยาว + 1) แล้วก๊อปพร้อม '\\0'",
+   "hint_en": "malloc(length + 1) and copy including '\\0'"
   }
  ],
  "ex01": [
   {
    "match": "\\(10, 10\\)|\\(10, 2\\)",
-   "hint": "min >= max ต้อง return NULL"
+   "hint": "min >= max ต้อง return NULL",
+   "hint_en": "min >= max returns NULL"
   }
  ],
  "ex02": [
   {
    "match": "return",
-   "hint": "min >= max: *range = NULL และ return 0; malloc พัง return -1; ปกติ return ขนาด"
+   "hint": "min >= max: *range = NULL และ return 0; malloc พัง return -1; ปกติ return ขนาด",
+   "hint_en": "min >= max: *range = NULL and return 0; malloc failure returns -1; otherwise return the size"
   }
  ],
  "ex03": [
   {
    "match": "\\(0,",
-   "hint": "size = 0 ต้องคืน string ว่างที่ malloc มา (free ได้)"
+   "hint": "size = 0 ต้องคืน string ว่างที่ malloc มา (free ได้)",
+   "hint_en": "size = 0 returns a malloc'd empty string (free-able)"
   },
   {
    "match": "*",
-   "hint": "คำนวณความยาวรวม + sep ระหว่างคำ + 1 แล้ว malloc ครั้งเดียว"
+   "hint": "คำนวณความยาวรวม + sep ระหว่างคำ + 1 แล้ว malloc ครั้งเดียว",
+   "hint_en": "Compute the total length + separators + 1 and malloc once"
   }
  ],
  "ex04": [
   {
    "match": "\"0\"|0110|01-",
-   "hint": "base ผิดต้อง return NULL"
+   "hint": "base ผิดต้อง return NULL",
+   "hint_en": "Invalid base returns NULL"
   },
   {
    "match": "\"0\", \"0123456789\"|-0",
-   "hint": "ค่า 0 ต้องได้ตัวแรกของ base_to"
+   "hint": "ค่า 0 ต้องได้ตัวแรกของ base_to",
+   "hint_en": "Value 0 is the first char of base_to"
   }
  ],
  "ex05": [
   {
    "match": "\"\"|\"     \"",
-   "hint": "ไม่มีคำเลย ต้องคืน array ที่มีแค่ 0 (NULL) ตัวเดียว"
+   "hint": "ไม่มีคำเลย ต้องคืน array ที่มีแค่ 0 (NULL) ตัวเดียว",
+   "hint_en": "No words: return an array with only 0 (NULL)"
   },
   {
    "match": "*",
-   "hint": "นับคำก่อน malloc(คำ + 1) แล้วตัดทีละคำ ช่องสุดท้ายเป็น 0"
+   "hint": "นับคำก่อน malloc(คำ + 1) แล้วตัดทีละคำ ช่องสุดท้ายเป็น 0",
+   "hint_en": "Count words, malloc(words + 1), cut each word, last slot is 0"
   }
  ]
 }

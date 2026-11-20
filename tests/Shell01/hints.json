@@ -1,0 +1,30 @@
+{
+ "ex01": [
+  {
+   "match": "*",
+   "hint": "id -Gn $FT_USER แล้วเปลี่ยน space เป็น , และตัด \\n ท้าย",
+   "hint_en": "id -Gn $FT_USER, turn spaces into commas and remove the final newline"
+  }
+ ],
+ "ex02": [
+  {
+   "match": "*",
+   "hint": "find . -name '*.sh' แล้วใช้ sed ตัด path และ .sh",
+   "hint_en": "find . -name '*.sh' then sed away the path and .sh"
+  }
+ ],
+ "ex07": [
+  {
+   "match": "*",
+   "hint": "ทำตามลำดับ: ตัด comment → เอาบรรทัดคู่ → cut ชื่อ → rev → sort -r → sed -n ช่วงบรรทัด → คั่นด้วย , และจบด้วย .",
+   "hint_en": "In order: drop comments → keep even lines → cut login → rev → sort -r → sed -n range → join with , and end with ."
+  }
+ ],
+ "ex08": [
+  {
+   "match": "*",
+   "hint": "แปลงตัวอักษรเป็นตัวเลขด้วย tr แล้วให้ bc คำนวณ (ibase=5, obase=13) แล้ว tr กลับ",
+   "hint_en": "Map the symbols to digits with tr, let bc compute (ibase=5, obase=13), then tr back"
+  }
+ ]
+}

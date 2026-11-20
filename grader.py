@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""piscine-grader: ตัวตรวจ C Piscine 42 (C00–C09)
+"""piscine-grader: Shell00–01, C00–C13
 
-grade                      เปิดเมนู
-grade C03 <โฟลเดอร์|ลิงก์ git> [--no-web] [--fix] [--peer]
-grade update               อัปเดตตัวตรวจ
+grade                                   menu / เปิดเมนู
+grade C03 <folder | git link> [--no-web] [--fix] [--peer]
+grade update                            update / อัปเดต
 """
 import datetime
 import difflib
@@ -36,7 +36,31 @@ def _diag_flags():
 
 
 DIAG = _diag_flags()
-TTY = sys.stdout.isatty()
+TTY = sys.stdout.isatty() or os.environ.get("GRADER_COLOR") == "1"
+CONFIG = os.path.join(os.path.expanduser("~"), ".config", "piscine-grader", "config.json")
+
+
+def load_config():
+    try:
+        return json.load(open(CONFIG, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_config(**kw):
+    cfg = load_config()
+    cfg.update(kw)
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=1)
+
+
+LANG = os.environ.get("GRADER_LANG") or load_config().get("lang", "th")
+
+
+def L(th, en):
+    """ข้อความตามภาษาที่เลือก"""
+    return en if LANG == "en" else th
 
 
 def c(code, s):
@@ -52,12 +76,12 @@ def dim(s): return c("2", s)
 
 
 KIND = {
-    "file": ("📁", "ไฟล์"),
-    "rule": ("🚫", "กฎ"),
+    "file": ("📁", L("ไฟล์", "File")),
+    "rule": ("🚫", L("กฎ", "Rule")),
     "norm": ("📏", "Norm"),
-    "compile": ("🔧", "คอมไพล์"),
-    "logic": ("🧠", "ผลลัพธ์"),
-    "crash": ("💥", "พัง/ค้าง"),
+    "compile": ("🔧", L("คอมไพล์", "Compile")),
+    "logic": ("🧠", L("ผลลัพธ์", "Output")),
+    "crash": ("💥", L("พัง/ค้าง", "Crash/Hang")),
 }
 
 
@@ -133,11 +157,11 @@ def char_diff(wrong, right):
     sm = difflib.SequenceMatcher(None, wrong, right)
     for op, i1, i2, j1, j2 in sm.get_opcodes():
         if op == "replace":
-            out.append(f"ตัวที่ {i1 + 1}: '{wrong[i1:i2]}' ควรเป็น '{right[j1:j2]}'")
+            out.append(L(f"ตัวที่ {i1 + 1}: '{wrong[i1:i2]}' ควรเป็น '{right[j1:j2]}'", f"char {i1 + 1}: '{wrong[i1:i2]}' should be '{right[j1:j2]}'"))
         elif op == "delete":
-            out.append(f"ตัวที่ {i1 + 1}: มี '{wrong[i1:i2]}' เกินมา")
+            out.append(L(f"ตัวที่ {i1 + 1}: มี '{wrong[i1:i2]}' เกินมา", f"char {i1 + 1}: extra '{wrong[i1:i2]}'"))
         elif op == "insert":
-            out.append(f"ตัวที่ {i1 + 1}: ขาด '{right[j1:j2]}'")
+            out.append(L(f"ตัวที่ {i1 + 1}: ขาด '{right[j1:j2]}'", f"char {i1 + 1}: missing '{right[j1:j2]}'"))
     return ", ".join(out[:3])
 
 
@@ -308,7 +332,9 @@ def reindent(text):
     lines = text.split("\n")
     masked = code_mask(text).split("\n")
     depth = 0
-    pending = 0  # if/while/else ที่ไม่มี { ตามหลัง
+    pending = 0  # จำนวน if/while/else ซ้อนกันที่ไม่มี { ตามหลัง
+    prev = ""
+    paren = 0
     out = []
     for raw, m in zip(lines, masked):
         stripped = raw.strip()
@@ -316,6 +342,13 @@ def reindent(text):
         if not stripped or raw.startswith("/*") or raw.startswith("#") or (raw.startswith(" *") and "*/" in raw):
             out.append(raw if raw.startswith(("/*", "#")) else stripped)
             continue
+        if paren > 0 or prev.endswith((",", "&&", "||", "+", "-", "*", "/", "(")) or not ms \
+                or ms.startswith(("&&", "||")):
+            out.append(raw)          # บรรทัดต่อจากบรรทัดก่อน: ไม่แตะ
+            paren += ms.count("(") - ms.count(")")
+            prev = ms or prev
+            continue
+        paren += ms.count("(") - ms.count(")")
         level = depth + pending
         if ms.startswith("}"):
             level = max(0, depth - 1)
@@ -326,9 +359,10 @@ def reindent(text):
         opens, closes = ms.count("{"), ms.count("}")
         depth = max(0, depth + opens - closes)
         if re.match(r"^(if|while|else if|else)\b", ms) and not ms.endswith(("{", ";")):
-            pending = 1 if not pending else pending
+            pending += 1
         elif ms.endswith(";") or ms.endswith("}"):
             pending = 0
+        prev = ms
     return "\n".join(out)
 
 
@@ -451,57 +485,57 @@ def fix_redeclared_param(text, line, name):
 
 # ───────────────────────── norminette ─────────────────────────
 NORM_TH = {
-    "INVALID_HEADER": ("ไม่มี 42 header หรือ header เสีย", "ใส่ header ใหม่ (vim: :Stdheader)", True),
-    "SPACE_REPLACE_TAB": ("ใช้ Space ในที่ที่ต้องเป็น Tab", "ระหว่างชนิดตัวแปรกับชื่อ และย่อหน้า ต้องใช้ Tab", True),
-    "TAB_REPLACE_SPACE": ("ใช้ Tab ในที่ที่ต้องเป็น Space", "", True),
-    "SPACE_BEFORE_FUNC": ("ระหว่างชนิดกับชื่อฟังก์ชันต้องเป็น Tab", "เช่น void<Tab>ft_putchar(...)", True),
-    "TOO_FEW_TAB": ("ย่อหน้าไม่พอ", "ข้างใน { } ต้องย่อหน้าเพิ่ม 1 Tab ต่อชั้น", True),
-    "TOO_MANY_TAB": ("ย่อหน้าเกิน", "", True),
-    "MIXED_SPACE_TAB": ("ย่อหน้าปน Space กับ Tab", "ใช้ Tab อย่างเดียว", True),
-    "SPC_BEFORE_NL": ("มี Space ท้ายบรรทัด", "ลบช่องว่างท้ายบรรทัด", True),
-    "SPACE_EMPTY_LINE": ("บรรทัดว่างมี Space/Tab ค้าง", "", True),
-    "CONSECUTIVE_NEWLINES": ("มีบรรทัดว่างติดกันหลายบรรทัด", "เหลือบรรทัดว่างได้แค่ 1", True),
-    "CONSECUTIVE_SPC": ("มี Space ติดกันหลายตัว", "", True),
-    "EMPTY_LINE_EOF": ("มีบรรทัดว่างท้ายไฟล์", "", True),
-    "EMPTY_LINE_FUNCTION": ("มีบรรทัดว่างในฟังก์ชัน", "บรรทัดว่างในฟังก์ชันมีได้ที่เดียวคือหลังประกาศตัวแปร", True),
-    "BRACE_NEWLINE": ("{ ต้องอยู่บรรทัดใหม่ของตัวเอง", "", True),
-    "BRACE_SHOULD_EOL": ("หลัง { หรือ } ต้องขึ้นบรรทัดใหม่", "", True),
-    "RETURN_PARENTHESIS": ("ค่าที่ return ต้องอยู่ในวงเล็บ", "เขียนเป็น return (x);", True),
-    "SPACE_AFTER_KW": ("หลัง if/while/return ต้องเว้น 1 Space", "เขียนเป็น if (...)", True),
-    "NL_AFTER_VAR_DECL": ("หลังประกาศตัวแปรต้องเว้น 1 บรรทัด", "", True),
-    "NL_AFTER_PREPROC": ("หลัง #include ต้องเว้นบรรทัด", "", True),
-    "MISALIGNED_VAR_DECL": ("ชื่อตัวแปรไม่ตรงคอลัมน์เดียวกัน", "ใช้ Tab จัดชื่อตัวแปรให้ตรงกัน", True),
-    "MISALIGNED_FUNC_DECL": ("ชื่อฟังก์ชันไม่ตรงคอลัมน์", "", True),
-    "SPC_AFTER_OPERATOR": ("หลังเครื่องหมาย (+ - = ...) ต้องเว้น Space", "เช่น a = b + 1", False),
-    "SPC_BFR_OPERATOR": ("ก่อนเครื่องหมาย (+ - = ...) ต้องเว้น Space", "", False),
-    "NO_SPC_AFR_OPR": ("หลังเครื่องหมายห้ามเว้น Space", "", False),
-    "NO_SPC_BFR_OPR": ("ก่อนเครื่องหมายห้ามเว้น Space", "", False),
-    "SPC_AFTER_PAR": ("หลัง ( ห้ามเว้น Space", "", False),
-    "SPC_BFR_PAR": ("ก่อน ) ห้ามเว้น Space", "", False),
-    "NO_ARGS_VOID": ("ฟังก์ชันที่ไม่รับค่าต้องเขียน (void)", "เช่น void ft_print_alphabet(void)", False),
-    "TOO_MANY_LINES": ("ฟังก์ชันยาวเกิน 25 บรรทัด", "แยกบางส่วนออกเป็นฟังก์ชันย่อย", False),
-    "TOO_MANY_FUNCS": ("มีฟังก์ชันเกิน 5 ตัวในไฟล์", "", False),
-    "TOO_MANY_VARS_FUNC": ("ประกาศตัวแปรเกิน 5 ตัวในฟังก์ชัน", "ย้ายบางส่วนไปฟังก์ชันย่อย", False),
-    "TOO_MANY_ARGS": ("ฟังก์ชันรับ argument เกิน 4 ตัว", "", False),
-    "LINE_TOO_LONG": ("บรรทัดยาวเกิน 80 ตัวอักษร", "ตัดขึ้นบรรทัดใหม่", False),
-    "FORBIDDEN_CS": ("ใช้คำสั่งต้องห้าม (for, do...while, switch, goto)", "เปลี่ยนเป็น while", False),
-    "TERNARY_FBIDDEN": ("ห้ามใช้ ? : (ternary)", "เปลี่ยนเป็น if/else", False),
-    "VAR_DECL_START_FUNC": ("ต้องประกาศตัวแปรไว้ต้นฟังก์ชันเท่านั้น", "", False),
-    "DECL_ASSIGN_LINE": ("ห้ามประกาศตัวแปรพร้อมกำหนดค่า", "แยกเป็น int i; แล้วค่อย i = 0;", False),
-    "MULT_DECL_LINE": ("ห้ามประกาศหลายตัวแปรในบรรทัดเดียว", "", False),
-    "TOO_MANY_INSTR": ("มีหลายคำสั่งในบรรทัดเดียว", "1 บรรทัด 1 คำสั่ง", False),
-    "WRONG_SCOPE_COMMENT": ("ห้ามเขียน comment ข้างในฟังก์ชัน", "ย้าย comment ไปไว้นอกฟังก์ชัน", False),
-    "FORBIDDEN_CHAR_NAME": ("ชื่อตัวแปร/ฟังก์ชันต้องเป็นตัวเล็ก ตัวเลข หรือ _ เท่านั้น", "", False),
-    "USER_DEFINED_TYPEDEF": ("ชื่อ typedef ต้องขึ้นต้นด้วย t_", "", False),
-    "STRUCT_TYPE_NAMING": ("ชื่อ struct ต้องขึ้นต้นด้วย s_", "", False),
-    "HEADER_PROT_ALL": ("header ต้องมี #ifndef ... #define ... #endif ป้องกัน include ซ้ำ", "", False),
-    "HEADER_PROT_NAME": ("ชื่อ macro ป้องกัน header ต้องเป็น ชื่อไฟล์_H ตัวใหญ่", "เช่น FT_H", False),
-    "PREPROC_CONSTANT": ("#define ต้องเป็นค่าคงที่เท่านั้น", "", False),
-    "MACRO_NAME_CAPITAL": ("ชื่อ macro ต้องเป็นตัวใหญ่", "", False),
-    "PREPROC_BAD_INDENT": ("#define ใน #ifndef ต้องเว้น 1 Space หลัง #", "เขียนเป็น # define", False),
-    "INCLUDE_START_FILE": ("#include ต้องอยู่ต้นไฟล์", "", False),
-    "GLOBAL_VAR_DETECTED": ("ห้ามใช้ตัวแปร global", "", False),
-    "EXP_PARENTHESIS": ("ต้องมีช่องว่างก่อน (", "", False),
+    "INVALID_HEADER": (L("ไม่มี 42 header หรือ header เสีย", "Missing or invalid 42 header"), L("ใส่ header ใหม่ (vim: :Stdheader)", "Add the header again (vim: :Stdheader)"), True),
+    "SPACE_REPLACE_TAB": (L("ใช้ Space ในที่ที่ต้องเป็น Tab", "Space used where a Tab is required"), L("ระหว่างชนิดตัวแปรกับชื่อ และย่อหน้า ต้องใช้ Tab", "Use Tab between type and name, and for indentation"), True),
+    "TAB_REPLACE_SPACE": (L("ใช้ Tab ในที่ที่ต้องเป็น Space", "Tab used where a Space is required"), "", True),
+    "SPACE_BEFORE_FUNC": (L("ระหว่างชนิดกับชื่อฟังก์ชันต้องเป็น Tab", "Tab required between return type and function name"), L("เช่น void<Tab>ft_putchar(...)", "e.g. void<Tab>ft_putchar(...)"), True),
+    "TOO_FEW_TAB": (L("ย่อหน้าไม่พอ", "Not enough indentation"), L("ข้างใน { } ต้องย่อหน้าเพิ่ม 1 Tab ต่อชั้น", "Inside { } indent one more Tab per level"), True),
+    "TOO_MANY_TAB": (L("ย่อหน้าเกิน", "Too much indentation"), "", True),
+    "MIXED_SPACE_TAB": (L("ย่อหน้าปน Space กับ Tab", "Indentation mixes Spaces and Tabs"), L("ใช้ Tab อย่างเดียว", "Use Tabs only"), True),
+    "SPC_BEFORE_NL": (L("มี Space ท้ายบรรทัด", "Space at end of line"), L("ลบช่องว่างท้ายบรรทัด", "Remove trailing spaces"), True),
+    "SPACE_EMPTY_LINE": (L("บรรทัดว่างมี Space/Tab ค้าง", "Empty line contains Spaces/Tabs"), "", True),
+    "CONSECUTIVE_NEWLINES": (L("มีบรรทัดว่างติดกันหลายบรรทัด", "Several empty lines in a row"), L("เหลือบรรทัดว่างได้แค่ 1", "Keep only one empty line"), True),
+    "CONSECUTIVE_SPC": (L("มี Space ติดกันหลายตัว", "Several spaces in a row"), "", True),
+    "EMPTY_LINE_EOF": (L("มีบรรทัดว่างท้ายไฟล์", "Empty line at end of file"), "", True),
+    "EMPTY_LINE_FUNCTION": (L("มีบรรทัดว่างในฟังก์ชัน", "Empty line inside function"), L("บรรทัดว่างในฟังก์ชันมีได้ที่เดียวคือหลังประกาศตัวแปร", "The only empty line allowed in a function is after the variable declarations"), True),
+    "BRACE_NEWLINE": (L("{ ต้องอยู่บรรทัดใหม่ของตัวเอง", "{ must be on its own line"), "", True),
+    "BRACE_SHOULD_EOL": (L("หลัง { หรือ } ต้องขึ้นบรรทัดใหม่", "Line break required after { or }"), "", True),
+    "RETURN_PARENTHESIS": (L("ค่าที่ return ต้องอยู่ในวงเล็บ", "Return value must be in parentheses"), L("เขียนเป็น return (x);", "write return (x);"), True),
+    "SPACE_AFTER_KW": (L("หลัง if/while/return ต้องเว้น 1 Space", "Put one space after if/while/return"), L("เขียนเป็น if (...)", "write if (...)"), True),
+    "NL_AFTER_VAR_DECL": (L("หลังประกาศตัวแปรต้องเว้น 1 บรรทัด", "Empty line required after variable declarations"), "", True),
+    "NL_AFTER_PREPROC": (L("หลัง #include ต้องเว้นบรรทัด", "Empty line required after #include"), "", True),
+    "MISALIGNED_VAR_DECL": (L("ชื่อตัวแปรไม่ตรงคอลัมน์เดียวกัน", "Variable names are not aligned"), L("ใช้ Tab จัดชื่อตัวแปรให้ตรงกัน", "Align the names with Tabs"), True),
+    "MISALIGNED_FUNC_DECL": (L("ชื่อฟังก์ชันไม่ตรงคอลัมน์", "Function names are not aligned"), "", True),
+    "SPC_AFTER_OPERATOR": (L("หลังเครื่องหมาย (+ - = ...) ต้องเว้น Space", "Space required after operator (+ - = ...)"), L("เช่น a = b + 1", "e.g. a = b + 1"), False),
+    "SPC_BFR_OPERATOR": (L("ก่อนเครื่องหมาย (+ - = ...) ต้องเว้น Space", "Space required before operator (+ - = ...)"), "", False),
+    "NO_SPC_AFR_OPR": (L("หลังเครื่องหมายห้ามเว้น Space", "No space allowed after this operator"), "", False),
+    "NO_SPC_BFR_OPR": (L("ก่อนเครื่องหมายห้ามเว้น Space", "No space allowed before this operator"), "", False),
+    "SPC_AFTER_PAR": (L("หลัง ( ห้ามเว้น Space", "No space after ("), "", False),
+    "SPC_BFR_PAR": (L("ก่อน ) ห้ามเว้น Space", "No space before )"), "", False),
+    "NO_ARGS_VOID": (L("ฟังก์ชันที่ไม่รับค่าต้องเขียน (void)", "A function without parameters must be declared (void)"), L("เช่น void ft_print_alphabet(void)", "e.g. void ft_print_alphabet(void)"), False),
+    "TOO_MANY_LINES": (L("ฟังก์ชันยาวเกิน 25 บรรทัด", "Function longer than 25 lines"), L("แยกบางส่วนออกเป็นฟังก์ชันย่อย", "Move part of it into a helper function"), False),
+    "TOO_MANY_FUNCS": (L("มีฟังก์ชันเกิน 5 ตัวในไฟล์", "More than 5 functions in the file"), "", False),
+    "TOO_MANY_VARS_FUNC": (L("ประกาศตัวแปรเกิน 5 ตัวในฟังก์ชัน", "More than 5 variables in the function"), L("ย้ายบางส่วนไปฟังก์ชันย่อย", "Move some work into a helper function"), False),
+    "TOO_MANY_ARGS": (L("ฟังก์ชันรับ argument เกิน 4 ตัว", "More than 4 parameters"), "", False),
+    "LINE_TOO_LONG": (L("บรรทัดยาวเกิน 80 ตัวอักษร", "Line longer than 80 characters"), L("ตัดขึ้นบรรทัดใหม่", "Break the line"), False),
+    "FORBIDDEN_CS": (L("ใช้คำสั่งต้องห้าม (for, do...while, switch, goto)", "Forbidden statement (for, do...while, switch, goto)"), L("เปลี่ยนเป็น while", "Use while instead"), False),
+    "TERNARY_FBIDDEN": (L("ห้ามใช้ ? : (ternary)", "Ternary ? : is forbidden"), L("เปลี่ยนเป็น if/else", "Use if/else instead"), False),
+    "VAR_DECL_START_FUNC": (L("ต้องประกาศตัวแปรไว้ต้นฟังก์ชันเท่านั้น", "Declare variables at the top of the function only"), "", False),
+    "DECL_ASSIGN_LINE": (L("ห้ามประกาศตัวแปรพร้อมกำหนดค่า", "Declaration and assignment on the same line is forbidden"), L("แยกเป็น int i; แล้วค่อย i = 0;", "Write int i; then i = 0;"), False),
+    "MULT_DECL_LINE": (L("ห้ามประกาศหลายตัวแปรในบรรทัดเดียว", "Only one declaration per line"), "", False),
+    "TOO_MANY_INSTR": (L("มีหลายคำสั่งในบรรทัดเดียว", "Several instructions on one line"), L("1 บรรทัด 1 คำสั่ง", "One instruction per line"), False),
+    "WRONG_SCOPE_COMMENT": (L("ห้ามเขียน comment ข้างในฟังก์ชัน", "Comments are not allowed inside functions"), L("ย้าย comment ไปไว้นอกฟังก์ชัน", "Move the comment outside the function"), False),
+    "FORBIDDEN_CHAR_NAME": (L("ชื่อตัวแปร/ฟังก์ชันต้องเป็นตัวเล็ก ตัวเลข หรือ _ เท่านั้น", "Names must use lowercase letters, digits or _ only"), "", False),
+    "USER_DEFINED_TYPEDEF": (L("ชื่อ typedef ต้องขึ้นต้นด้วย t_", "typedef names must start with t_"), "", False),
+    "STRUCT_TYPE_NAMING": (L("ชื่อ struct ต้องขึ้นต้นด้วย s_", "struct names must start with s_"), "", False),
+    "HEADER_PROT_ALL": (L("header ต้องมี #ifndef ... #define ... #endif ป้องกัน include ซ้ำ", "Header needs #ifndef ... #define ... #endif protection"), "", False),
+    "HEADER_PROT_NAME": (L("ชื่อ macro ป้องกัน header ต้องเป็น ชื่อไฟล์_H ตัวใหญ่", "Guard macro must be FILENAME_H in capitals"), L("เช่น FT_H", "e.g. FT_H"), False),
+    "PREPROC_CONSTANT": (L("#define ต้องเป็นค่าคงที่เท่านั้น", "#define must be a constant"), "", False),
+    "MACRO_NAME_CAPITAL": (L("ชื่อ macro ต้องเป็นตัวใหญ่", "Macro names must be uppercase"), "", False),
+    "PREPROC_BAD_INDENT": (L("#define ใน #ifndef ต้องเว้น 1 Space หลัง #", "Inside #ifndef write '# define' (space after #)"), L("เขียนเป็น # define", "write # define"), False),
+    "INCLUDE_START_FILE": (L("#include ต้องอยู่ต้นไฟล์", "#include must be at the top of the file"), "", False),
+    "GLOBAL_VAR_DETECTED": (L("ห้ามใช้ตัวแปร global", "Global variables are forbidden"), "", False),
+    "EXP_PARENTHESIS": (L("ต้องมีช่องว่างก่อน (", "Space required before ("), "", False),
 }
 
 
@@ -522,38 +556,40 @@ def explain_cc(msg):
     """แปลข้อความ error ของ gcc/clang เป็นคำอธิบายภาษาไทย → (title, hint, fix_kind)"""
     m = msg
     rules = [
-        (r"expected ';'|expected ',' or ';'", "ลืม ; ท้ายคำสั่ง", "ใส่ ; ที่ท้ายบรรทัดก่อนหน้าบรรทัดนี้", "semicolon"),
+        (r"expected ';'|expected ',' or ';'", L("ลืม ; ท้ายคำสั่ง", "Missing ; at the end of a statement"), L("ใส่ ; ที่ท้ายบรรทัดก่อนหน้าบรรทัดนี้", "Add ; at the end of the previous line"), "semicolon"),
         (r"expected '\)' before (numeric constant|'&'|'\w+'|string constant|character constant)|expected ',' or '\)'|^expected '\)'$",
-         "ลืม , คั่นระหว่างค่าที่ส่งให้ฟังก์ชัน", "เช่น write(1, &c, 1) ต้องมี , ครบทุกช่อง", "comma"),
+         L("ลืม , คั่นระหว่างค่าที่ส่งให้ฟังก์ชัน", "Missing , between function arguments"), L("เช่น write(1, &c, 1) ต้องมี , ครบทุกช่อง", "e.g. write(1, &c, 1) needs every comma"), "comma"),
         (r"implicit declaration of function '?write'?|call to undeclared function 'write'",
-         "เรียก write แต่ไม่ได้ #include <unistd.h>", "ใส่ #include <unistd.h> ไว้บนสุด", "inc_unistd"),
+         L("เรียก write แต่ไม่ได้ #include <unistd.h>", "write is used but <unistd.h> is not included"), L("ใส่ #include <unistd.h> ไว้บนสุด", "Add #include <unistd.h> at the top"), "inc_unistd"),
         (r"implicit declaration of function '?(malloc|free)'?|call to undeclared (library )?function '(malloc|free)'",
-         "เรียก malloc/free แต่ไม่ได้ #include <stdlib.h>", "ใส่ #include <stdlib.h>", "inc_stdlib"),
+         L("เรียก malloc/free แต่ไม่ได้ #include <stdlib.h>", "malloc/free used but <stdlib.h> is not included"), L("ใส่ #include <stdlib.h>", "Add #include <stdlib.h>"), "inc_stdlib"),
+        (r"'NULL' undeclared|undeclared identifier 'NULL'",
+         L("ใช้ NULL แต่ไม่ได้ #include <stdlib.h>", "NULL used but <stdlib.h> is not included"), L("ใส่ #include <stdlib.h> หรือใช้ 0 แทน", "Add #include <stdlib.h> or use 0"), "inc_stdlib"),
         (r"implicit declaration of function|call to undeclared function",
-         "เรียกฟังก์ชันที่ยังไม่ได้ประกาศ", "ต้องเขียนฟังก์ชันนั้นไว้ข้างบน หรือใส่ prototype", None),
+         L("เรียกฟังก์ชันที่ยังไม่ได้ประกาศ", "Calling a function that is not declared"), L("ต้องเขียนฟังก์ชันนั้นไว้ข้างบน หรือใส่ prototype", "Define the function above, or add a prototype"), None),
         (r"redeclared as different kind of symbol|redefinition of '(\w+)'.*|redefinition of parameter",
-         "ประกาศตัวแปรชื่อซ้ำกับ parameter", "ตัวแปรนี้มีมาให้แล้วในวงเล็บของฟังก์ชัน ไม่ต้องประกาศใหม่", "redecl"),
+         L("ประกาศตัวแปรชื่อซ้ำกับ parameter", "Variable redeclares a parameter"), L("ตัวแปรนี้มีมาให้แล้วในวงเล็บของฟังก์ชัน ไม่ต้องประกาศใหม่", "This variable already comes from the function's parameters; do not declare it again"), "redecl"),
         (r"'(\w+)' undeclared|use of undeclared identifier '(\w+)'",
-         "ใช้ชื่อที่ไม่มีอยู่ (ยังไม่ได้ประกาศ หรือพิมพ์ผิด)",
-         "ถ้าหมายถึงตัวอักษร ต้องใส่ ' ' เช่น 'A' / ถ้าเป็นตัวแปร ต้องประกาศก่อน", "undeclared"),
-        (r"unused variable", "ประกาศตัวแปรแล้วไม่ได้ใช้ (-Werror ถือว่าเป็น error)", "ลบตัวแปรนั้นทิ้ง", None),
-        (r"unused parameter", "parameter ไม่ได้ถูกใช้เลย", "ใช้มันในฟังก์ชัน หรือเขียน (void)ชื่อ;", None),
-        (r"conflicting types", "prototype ไม่ตรงกับตัวฟังก์ชัน", "ชนิดของ return/parameter ต้องตรงกันทั้งสองที่",
+         L("ใช้ชื่อที่ไม่มีอยู่ (ยังไม่ได้ประกาศ หรือพิมพ์ผิด)", "Unknown name (not declared or misspelled)"),
+         L("ถ้าหมายถึงตัวอักษร ต้องใส่ ' ' เช่น 'A' / ถ้าเป็นตัวแปร ต้องประกาศก่อน", "A single character needs quotes like 'A'; a variable must be declared first"), "undeclared"),
+        (r"unused variable", L("ประกาศตัวแปรแล้วไม่ได้ใช้ (-Werror ถือว่าเป็น error)", "Unused variable (-Werror makes it an error)"), L("ลบตัวแปรนั้นทิ้ง", "Remove the variable"), None),
+        (r"unused parameter", L("parameter ไม่ได้ถูกใช้เลย", "Unused parameter"), L("ใช้มันในฟังก์ชัน หรือเขียน (void)ชื่อ;", "Use it, or write (void)name;"), None),
+        (r"conflicting types", L("prototype ไม่ตรงกับตัวฟังก์ชัน", "Prototype does not match the function"), L("ชนิดของ return/parameter ต้องตรงกันทั้งสองที่", "Return and parameter types must match"),
          None),
         (r"control reaches end of non-void function|non-void function does not return",
-         "ฟังก์ชันที่ต้องคืนค่า แต่บางทางไม่มี return", "ใส่ return (...); ให้ครบทุกทาง", None),
-        (r"expected declaration or statement at end of input|expected '}'", "ปีกกา { } ไม่ครบคู่",
-         "นับ { กับ } ให้เท่ากัน", None),
-        (r"expected identifier or '\('|expected expression", "เขียนคำสั่งผิดรูปแบบตรงนี้",
-         "ดูเครื่องหมายรอบ ๆ ตำแหน่งนี้ (วงเล็บ, ;, ,)", None),
+         L("ฟังก์ชันที่ต้องคืนค่า แต่บางทางไม่มี return", "Non-void function without return on some path"), L("ใส่ return (...); ให้ครบทุกทาง", "Add return (...); on every path"), None),
+        (r"expected declaration or statement at end of input|expected '}'", L("ปีกกา { } ไม่ครบคู่", "Unbalanced { }"),
+         L("นับ { กับ } ให้เท่ากัน", "Balance your { and }"), None),
+        (r"expected identifier or '\('|expected expression", L("เขียนคำสั่งผิดรูปแบบตรงนี้", "Syntax error here"),
+         L("ดูเครื่องหมายรอบ ๆ ตำแหน่งนี้ (วงเล็บ, ;, ,)", "Check the symbols around this spot (parentheses, ;, ,)"), None),
         (r"comparison between pointer and integer|makes integer from pointer|makes pointer from integer",
-         "ใช้ pointer กับตัวเลขปนกัน", "ตัวอักษรเดียวใช้ ' ' ส่วนข้อความใช้ \" \"", None),
-        (r"too few arguments", "ส่งค่าให้ฟังก์ชันไม่ครบ", "", None),
-        (r"too many arguments", "ส่งค่าให้ฟังก์ชันเกิน", "", None),
-        (r"suggest parentheses", "ควรใส่วงเล็บครอบเงื่อนไข", "เช่น if ((a = b))", None),
-        (r"is used uninitialized|may be used uninitialized", "ใช้ตัวแปรก่อนกำหนดค่า", "กำหนดค่าเริ่มต้นก่อนใช้",
+         L("ใช้ pointer กับตัวเลขปนกัน", "Mixing pointers and integers"), L("ตัวอักษรเดียวใช้ ' ' ส่วนข้อความใช้ \" \"", "One character uses ' ', text uses \\\" \\\""), None),
+        (r"too few arguments", L("ส่งค่าให้ฟังก์ชันไม่ครบ", "Too few arguments"), "", None),
+        (r"too many arguments", L("ส่งค่าให้ฟังก์ชันเกิน", "Too many arguments"), "", None),
+        (r"suggest parentheses", L("ควรใส่วงเล็บครอบเงื่อนไข", "Add parentheses around the condition"), L("เช่น if ((a = b))", "e.g. if ((a = b))"), None),
+        (r"is used uninitialized|may be used uninitialized", L("ใช้ตัวแปรก่อนกำหนดค่า", "Variable used before it is set"), L("กำหนดค่าเริ่มต้นก่อนใช้", "Initialise it first"),
          None),
-        (r"stray '\\\d+'|stray '", "มีตัวอักษรแปลก ๆ ในโค้ด (อาจเป็นสระไทยหรือเครื่องหมายพิเศษ)", "", None),
+        (r"stray '\\\d+'|stray '", L("มีตัวอักษรแปลก ๆ ในโค้ด (อาจเป็นสระไทยหรือเครื่องหมายพิเศษ)", "Strange character in the code (non-ASCII)"), "", None),
     ]
     for pat, title, hint, kind in rules:
         mm = re.search(pat, m)
@@ -583,6 +619,9 @@ def parse_cc(out, fname):
             name = q.group(1) if q else name
             if kind == "undeclared" and (not name or len(name) != 1):
                 fixable = False
+        q = re.search(r"'(\w+)'", msg)
+        if q and kind not in ("semicolon", "comma") and q.group(1) not in title:
+            title = f"{title} → '{q.group(1)}'"
         issues.append(issue("compile", title, why=msg, hint=hint, file=os.path.basename(fname), line=ln,
                             fixable=fixable))
         if fixable:
@@ -629,24 +668,34 @@ def guess_hints(proj, ex, cases, status):
         pat = h.get("match", "*")
         if pat == "*" or any(re.search(pat, cs["name"] + " " + cs.get("exp", "") + " " + cs.get("got", ""), re.I)
                              for cs in bad):
-            hints.append(h["hint"])
+            hints.append(h.get("hint_en", h["hint"]) if LANG == "en" else h["hint"])
     for cs in bad:
         e, g = cs.get("exp", ""), cs.get("got", "")
         if g in ('""', "") and e not in ('""', ""):
-            hints.append("ฟังก์ชันไม่ได้พิมพ์/คืนอะไรออกมาเลย เช็กว่าเรียก write หรือ return ค่าจริงไหม")
+            hints.append(L("ฟังก์ชันไม่ได้พิมพ์/คืนอะไรออกมาเลย เช็กว่าเรียก write หรือ return ค่าจริงไหม", "The function printed/returned nothing. Check that write or return really happens"))
         elif g.startswith(e.rstrip('"')) and len(g) > len(e):
-            hints.append("ผลลัพธ์มีของเกินท้าย เช่น , หรือขึ้นบรรทัดใหม่เกิน")
+            hints.append(L("ผลลัพธ์มีของเกินท้าย เช่น , หรือขึ้นบรรทัดใหม่เกิน", "Output has extra characters at the end, e.g. a comma or newline"))
         elif e.startswith(g.rstrip('"')) and len(e) > len(g):
-            hints.append("ผลลัพธ์ขาดท้าย เช่น ลืมตัวสุดท้าย หรือเงื่อนไข while หยุดเร็วไป 1 รอบ")
+            hints.append(L("ผลลัพธ์ขาดท้าย เช่น ลืมตัวสุดท้าย หรือเงื่อนไข while หยุดเร็วไป 1 รอบ", "Output is missing the end: last item forgotten or the while stops one step early"))
     if status == "TIMEOUT":
-        hints.append("โปรแกรมวนไม่จบ: ลืมเพิ่มค่า i++ หรือเงื่อนไข while ไม่มีวันเป็นเท็จ")
+        hints.append(L("โปรแกรมวนไม่จบ: ลืมเพิ่มค่า i++ หรือเงื่อนไข while ไม่มีวันเป็นเท็จ", "Infinite loop: i++ forgotten or the while condition never becomes false"))
     if status == "CRASH":
-        hints.append("โปรแกรมพัง (segfault): อ่านเกินขอบ string/array, ใช้ pointer ที่เป็น NULL หรือลืม malloc")
+        hints.append(L("โปรแกรมพัง (segfault): อ่านเกินขอบ string/array, ใช้ pointer ที่เป็น NULL หรือลืม malloc", "Crash (segfault): reading past a string/array, using a NULL pointer, or missing malloc"))
     out = []
     for h in hints:
         if h not in out:
             out.append(h)
     return out[:4]
+
+
+def en_case(text):
+    """โหมดอังกฤษ: ตัดคำอธิบายภาษาไทยในชื่อเคสออก เหลือส่วนโค้ด"""
+    if LANG != "en" or not text or not re.search("[\u0e00-\u0e7f]", text):
+        return text
+    t = re.sub(r"[\u0e00-\u0e7f]+(?:[ ]+[\u0e00-\u0e7f0-9]+)*", "", text)
+    t = re.sub(r"\(\s*[,.]?\s*\)", "", t)
+    t = re.sub(r"\s{2,}", " ", t).strip(" ,.-:")
+    return t if re.search(r"[A-Za-z0-9]", t) else "check"
 
 
 def parse_cases(out):
@@ -689,6 +738,97 @@ def parse_cases(out):
     return cases
 
 
+def PROJ_SPEC_WILD(spec, proj):
+    return any(e["ex"] == spec["ex"] and e["files"] == ["*"] for e in PROJECTS.get(proj, []))
+
+
+# ───────────────────────── program tests (C10, C11 do-op) ─────────────────────────
+def make_fixtures(d):
+    import random
+    rnd = random.Random(42)
+    with open(os.path.join(d, "small.txt"), "w") as f:
+        f.write("Hello 42\nsecond line\n")
+    with open(os.path.join(d, "big.txt"), "w") as f:
+        f.write("".join(f"line {i} " + "x" * rnd.randint(0, 80) + "\n" for i in range(3000)))
+    with open(os.path.join(d, "bin.dat"), "wb") as f:
+        f.write(bytes(range(256)) + b"A" * 64 + b"\x00\x01" * 20 + b"end")
+    open(os.path.join(d, "empty.txt"), "w").close()
+    os.makedirs(os.path.join(d, "dir"), exist_ok=True)
+    with open(os.path.join(d, "noread.txt"), "w") as f:
+        f.write("secret\n")
+    os.chmod(os.path.join(d, "noread.txt"), 0)
+
+
+def hexdump_C(data):
+    out, prev, star, off = [], None, False, 0
+    while off < len(data):
+        chunk = data[off:off + 16]
+        if prev is not None and chunk == prev and len(chunk) == 16:
+            if not star:
+                out.append("*\n")
+                star = True
+        else:
+            star = False
+            g1 = "".join(f"{b:02x} " for b in chunk[:8]).ljust(24)
+            g2 = "".join(f"{b:02x} " for b in chunk[8:]).ljust(24)
+            out.append(f"{off:08x}  {g1} {g2} |" + "".join(chr(b) if 32 <= b < 127 else "." for b in chunk) + "|\n")
+        prev = chunk
+        off += len(chunk)
+    if data:
+        out.append(f"{len(data):08x}\n")
+    return "".join(out)
+
+
+def run_prog_case(binary, cs, cwd):
+    args = cs.get("args", [])
+    stdin = cs.get("stdin", "")
+    name = "./" + binary + " " + " ".join(a if a and " " not in a else repr(a) for a in args)
+
+    def go(cmd):
+        try:
+            r = subprocess.run(cmd, cwd=cwd, input=stdin.encode(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               timeout=TIMEOUT)
+            return r.stdout.decode("utf-8", "replace"), r.stderr.decode("utf-8", "replace"), r.returncode
+        except subprocess.TimeoutExpired:
+            return None, None, "TIMEOUT"
+
+    got_o, got_e, code = go(["./" + binary, *args])
+    if code == "TIMEOUT":
+        return {"name": name, "ok": False, "exp": L("จบภายในเวลา", "finish in time"), "got": L("ค้าง (อาจรออ่าน stdin)", "hangs (maybe waiting for stdin)")}
+    if isinstance(code, int) and code < 0:
+        return {"name": name, "ok": False, "exp": L("ทำงานจนจบ", "run to the end"), "got": L(f"พัง (signal {-code})", f"crash (signal {-code})")}
+    ref = cs.get("ref")
+    if ref == "hexdump_C":
+        data = b""
+        for a in args[1:]:
+            p = os.path.join(cwd, a)
+            if os.path.isfile(p) and os.access(p, os.R_OK):
+                data += open(p, "rb").read()
+        if len(args) <= 1:
+            data = stdin.encode()
+        exp_o, exp_e = hexdump_C(data), None
+    elif ref:
+        exp_o, exp_e, _ = go([ref, *args])
+        exp_e = exp_e.replace(ref + ":", "PROG:")
+    else:
+        exp_o, exp_e = cs.get("stdout", ""), cs.get("stderr")
+    got_e_n = (got_e or "").replace("./" + binary + ":", "PROG:").replace(binary + ":", "PROG:")
+    ok = got_o == exp_o
+    check_err = cs.get("check_stderr", exp_e is not None)
+    if check_err and exp_e is not None:
+        ok = ok and got_e_n == exp_e
+    res = {"name": name, "ok": ok}
+    if not ok:
+        def show(o, e):
+            t = (o or "").replace("\n", "$\n")
+            if check_err and e:
+                t += "\n[stderr] " + e.replace("PROG:", binary + ":").replace("\n", "$\n")
+            return t[:1500] or L("(ว่าง)", "(empty)")
+        res["exp"] = show(exp_o, exp_e)
+        res["got"] = show(got_o, got_e_n)
+    return res
+
+
 # ───────────────────────── one exercise ─────────────────────────
 class Grader:
     def __init__(self, proj, root, mine=False):
@@ -717,7 +857,7 @@ class Grader:
         if t == "func":
             objs = []
             cc_out = ""
-            for fn in spec["files"]:
+            for fn in [f for f in spec["files"] if f.endswith(".c")]:
                 o = os.path.join(wd, fn + ".o")
                 code, out = run(["cc", *CFLAGS, *inc, "-c", os.path.join(wd, fn), "-o", o])
                 cc_out += out
@@ -758,7 +898,7 @@ class Grader:
                 cs = {"name": name, "ok": ok}
                 if not ok:
                     cs["exp"] = "$\n".join(exp.split("\n"))
-                    cs["got"] = "พัง/ค้าง" if code == "TIMEOUT" or (isinstance(code, int) and code < 0) else "$\n".join(got.split("\n"))
+                    cs["got"] = L("พัง/ค้าง", "Crash/Hang") if code == "TIMEOUT" or (isinstance(code, int) and code < 0) else "$\n".join(got.split("\n"))
                 cases.append(cs)
             return ("OK" if all(cs["ok"] for cs in cases) else "KO"), "", "", cases
         if t == "script":
@@ -772,19 +912,31 @@ class Grader:
                     if code != 0:
                         return "COMPILE", out, "", []
             code, out = run(["sh", "libft_creator.sh"], cwd=sd, timeout=TIMEOUT)
-            cases = [{"name": "sh libft_creator.sh สร้าง libft.a", "ok": os.path.isfile(os.path.join(sd, "libft.a"))}]
+            cases = [{"name": L("sh libft_creator.sh สร้าง libft.a", "sh libft_creator.sh creates libft.a"), "ok": os.path.isfile(os.path.join(sd, "libft.a"))}]
             if not cases[0]["ok"]:
-                cases[0].update(exp="มีไฟล์ libft.a", got=out.strip() or "ไม่มีไฟล์")
+                cases[0].update(exp=L("มีไฟล์ libft.a", "libft.a exists"), got=out.strip() or L("ไม่มีไฟล์", "Missing file"))
                 return "KO", "", "", cases
             exe = os.path.join(wd, "t")
             code, out = run(["cc", "-w", "-I", LIB, os.path.join(self.tests, "ex00.c"), "-L", sd, "-lft", "-o", exe])
             if code != 0:
-                cases.append({"name": "ลิงก์กับ libft.a", "ok": False, "exp": "ฟังก์ชันครบ 5 ตัว", "got": out[-300:]})
+                cases.append({"name": L("ลิงก์กับ libft.a", "link with libft.a"), "ok": False, "exp": L("ฟังก์ชันครบ 5 ตัว", "all 5 functions"), "got": out[-300:]})
                 return "KO", "", "", cases
             st, a, b, more = self._run_test([exe], "")
             return st, a, b, cases + more
         if t == "make":
             return self._run_make(wd, srcs)
+        if t == "make_prog":
+            return self._run_make_prog(spec, wd)
+        if t == "shell":
+            import importlib.util
+            sp = importlib.util.spec_from_file_location("check_" + self.proj, os.path.join(self.tests, "check.py"))
+            mod = importlib.util.module_from_spec(sp)
+            sp.loader.exec_module(mod)
+            try:
+                cases = mod.check(spec["ex"], exdir, wd)
+            except Exception as e:  # noqa: BLE001
+                cases = [{"name": L("ตรวจไม่สำเร็จ", "Check failed"), "ok": False, "exp": L("ไม่มี error", "no error"), "got": f"{type(e).__name__}: {e}"}]
+            return ("OK" if cases and all(c["ok"] for c in cases) else "KO"), "", "", cases
         return "KO", "", "", []
 
     def _run_test(self, cmd, cc_out):
@@ -797,6 +949,44 @@ class Grader:
         if code == 1:
             return "KO", cc_out, out, cases
         return "CRASH", cc_out, out, cases
+
+    def _prog_spec(self, ex):
+        try:
+            return json.load(open(os.path.join(self.tests, f"prog_{ex}.json"), encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def _run_make_prog(self, spec, wd):
+        prog = self._prog_spec(spec["ex"])
+        binary = prog.get("binary", "a.out")
+        code, out = run(["make"], cwd=wd, timeout=120)
+        bpath = os.path.join(wd, binary)
+        if code != 0 or not os.path.isfile(bpath):
+            return "COMPILE", out, "", []
+        cases = []
+        flags_ok = all(f in out for f in ("-Wall", "-Wextra", "-Werror"))
+        cases.append({"name": L("make คอมไพล์ด้วย -Wall -Wextra -Werror", "make compiles with -Wall -Wextra -Werror"), "ok": flags_ok,
+                      "exp": L("เห็น flag ครบ", "all flags shown"), "got": out.strip()[-300:]})
+        rd = os.path.join(wd, "_run")
+        os.makedirs(rd)
+        make_fixtures(rd)
+        shutil.copy(bpath, os.path.join(rd, binary))
+        for cs in prog.get("cases", []):
+            cases.append(run_prog_case(binary, cs, rd))
+        mf = read(os.path.join(wd, "Makefile"))
+        for rule in prog.get("rules", []):
+            has = re.search(r"^" + re.escape(rule) + r"\s*:", mf, re.M) is not None
+            cases.append({"name": L(f"Makefile มี rule '{rule}'", f"Makefile has rule '{rule}'"), "ok": has, "exp": L("มี", "yes"), "got": L("ไม่มี", "no")})
+        run(["make", "clean"], cwd=wd, timeout=60)
+        left = [f for f in os.listdir(wd) if f.endswith(".o")]
+        cases.append({"name": L("make clean ลบไฟล์ .o", "make clean removes .o files"), "ok": not left, "exp": L("ไม่เหลือ .o", "no .o left"), "got": " ".join(left)})
+        run(["make", "fclean"], cwd=wd, timeout=60)
+        cases.append({"name": L(f"make fclean ลบ {binary}", f"make fclean removes {binary}"), "ok": not os.path.exists(bpath), "exp": L("ไม่มีไฟล์", "Missing file"), "got": L("ยังอยู่", "still there")})
+        for cs in cases:
+            if cs["ok"]:
+                cs.pop("exp", None)
+                cs.pop("got", None)
+        return ("OK" if all(c["ok"] for c in cases) else "KO"), "", "", cases
 
     def _run_make(self, wd, srcs):
         m = os.path.join(wd, "m")
@@ -814,26 +1004,26 @@ class Grader:
         mk = lambda *a: run(["make", *a], cwd=m, timeout=TIMEOUT)[1]
         o1 = mk()
         lib = os.path.join(m, "libft.a")
-        chk("make สร้าง libft.a", os.path.isfile(lib), "มี libft.a", o1[-300:])
-        chk("make แสดงคำสั่ง cc พร้อม -Wall -Wextra -Werror",
-            all(x in o1 for x in ("-Wall", "-Wextra", "-Werror")), "เห็น flag ครบ", o1[-300:])
-        chk(".o อยู่ข้าง .c ใน srcs/", os.path.isfile(os.path.join(m, "srcs", "ft_putchar.o")))
+        chk(L("make สร้าง libft.a", "make creates libft.a"), os.path.isfile(lib), L("มี libft.a", "libft.a exists"), o1[-300:])
+        chk(L("make แสดงคำสั่ง cc พร้อม -Wall -Wextra -Werror", "make shows cc commands with -Wall -Wextra -Werror"),
+            all(x in o1 for x in ("-Wall", "-Wextra", "-Werror")), L("เห็น flag ครบ", "all flags shown"), o1[-300:])
+        chk(L(".o อยู่ข้าง .c ใน srcs/", ".o files next to .c in srcs/"), os.path.isfile(os.path.join(m, "srcs", "ft_putchar.o")))
         _, nm = run(["nm", lib])
         n = len(set(re.findall(r" T _?(ft_putchar|ft_swap|ft_putstr|ft_strlen|ft_strcmp)$", nm, re.M)))
-        chk("libft.a มีครบ 5 ฟังก์ชัน", n == 5, "5", str(n))
+        chk(L("libft.a มีครบ 5 ฟังก์ชัน", "libft.a has all 5 functions"), n == 5, "5", str(n))
         o2 = mk()
-        chk("รัน make ซ้ำ ไม่คอมไพล์ใหม่", not re.search(r"(^|\s)(cc|gcc|ar)\s", o2), "ไม่มีคำสั่ง cc/ar", o2[-200:])
+        chk(L("รัน make ซ้ำ ไม่คอมไพล์ใหม่", "running make again does not recompile"), not re.search(r"(^|\s)(cc|gcc|ar)\s", o2), L("ไม่มีคำสั่ง cc/ar", "no cc/ar command"), o2[-200:])
         mk("clean")
-        chk("make clean ลบ .o แต่ libft.a ยังอยู่",
+        chk(L("make clean ลบ .o แต่ libft.a ยังอยู่", "make clean removes .o but keeps libft.a"),
             not any(f.endswith(".o") for f in os.listdir(os.path.join(m, "srcs"))) and os.path.isfile(lib))
         mk("fclean")
-        chk("make fclean ลบ libft.a", not os.path.isfile(lib))
+        chk(L("make fclean ลบ libft.a", "make fclean removes libft.a"), not os.path.isfile(lib))
         mk("re")
-        chk("make re สร้างใหม่ได้", os.path.isfile(lib))
+        chk(L("make re สร้างใหม่ได้", "make re rebuilds"), os.path.isfile(lib))
         return ("OK" if all(c["ok"] for c in cases) else "KO"), "", "", cases
 
     # ---- main entry per exercise ----
-    def grade_ex(self, spec):
+    def grade_ex(self, spec, override=None):
         ex = spec["ex"]
         res = {"ex": ex, "files": spec["files"], "issues": [], "cases": [], "sources": {}, "fixed": {},
                "solution": {}, "hints": [], "renames": [], "deletes": [], "status": "OK", "after_fix": None}
@@ -842,69 +1032,100 @@ class Grader:
         if not os.path.isdir(exdir):
             near = close_match(ex, [d for d in top if d not in [e["ex"] for e in PROJECTS[self.proj]]], 0.6)
             if near:
-                res["issues"].append(issue("file", f"ชื่อโฟลเดอร์ผิด: {near} → ควรเป็น {ex}", why=char_diff(near, ex),
+                res["issues"].append(issue("file", L(f"ชื่อโฟลเดอร์ผิด: {near} → ควรเป็น {ex}", f"Wrong folder name: {near} → should be {ex}"), why=char_diff(near, ex),
                                            fixable=True))
                 res["renames"].append((near, ex))
                 exdir = os.path.join(self.root, near)
             else:
-                res["issues"].append(issue("file", f"ไม่มีโฟลเดอร์ {ex}", hint="ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้"))
-                res["status"] = "ไม่มีไฟล์"
+                res["issues"].append(issue("file", L(f"ไม่มีโฟลเดอร์ {ex}", f"Folder {ex} is missing"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed")))
+                res["status"] = L("ไม่มีไฟล์", "Missing file")
                 self._solution(res, spec)
                 return res
         present = sorted(os.listdir(exdir))
         srcs = {}
         used = set()
+        if spec["files"] == ["*"]:
+            prog = self._prog_spec(ex)
+            for p in present:
+                full = os.path.join(exdir, p)
+                junk = p in ("a.out", ".DS_Store", prog.get("binary")) or p.endswith((".o", ".swp", "~")) or p.startswith(".")
+                if os.path.isfile(full) and not junk:
+                    srcs[p] = read(full)
+                elif junk:
+                    res["issues"].append(issue("file", L(f"มีไฟล์เกินใน {ex}: {p}", f"Extra file in {ex}: {p}"), hint=L("ลบไฟล์ที่ได้จากการคอมไพล์ก่อน push", "Remove build products before pushing"),
+                                               fixable=True))
+                    res["deletes"].append(f"{os.path.basename(exdir)}/{p}")
+            if "Makefile" not in srcs:
+                res["issues"].append(issue("file", L("ไม่มี Makefile", "Makefile is missing"), hint=L("ข้อนี้ต้องส่ง Makefile ที่มี rule all clean fclean", "This exercise needs a Makefile with rules all clean fclean")))
+                res["status"] = L("ไม่มีไฟล์", "Missing file")
+                res["sources"] = srcs
+                return res
+            spec = dict(spec, files=sorted(srcs))
+            res["files"] = spec["files"]
+        wild = PROJ_SPEC_WILD(spec, self.proj)
         for fn in spec["files"]:
+            if fn in srcs:
+                used.add(fn)
+                continue
             if fn in present:
                 srcs[fn] = read(os.path.join(exdir, fn))
                 used.add(fn)
                 continue
             near = close_match(fn, [p for p in present if p not in spec["files"]])
             if near:
-                res["issues"].append(issue("file", f"ชื่อไฟล์ผิด: {near} → ควรเป็น {fn}", why=char_diff(near, fn),
-                                           hint="Moulinette หาไฟล์จากชื่อเป๊ะ ๆ ถ้าชื่อผิดจะได้ 0 ทั้งข้อ",
+                res["issues"].append(issue("file", L(f"ชื่อไฟล์ผิด: {near} → ควรเป็น {fn}", f"Wrong file name: {near} → should be {fn}"), why=char_diff(near, fn),
+                                           hint=L("Moulinette หาไฟล์จากชื่อเป๊ะ ๆ ถ้าชื่อผิดจะได้ 0 ทั้งข้อ", "Moulinette looks for the exact name; a wrong name gives 0 for the exercise"),
                                            file=near, fixable=True))
                 res["renames"].append((f"{os.path.basename(exdir)}/{near}", f"{ex}/{fn}"))
                 srcs[fn] = read(os.path.join(exdir, near))
                 used.add(near)
             else:
-                res["issues"].append(issue("file", f"ไม่มีไฟล์ {fn}", hint="ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้"))
+                res["issues"].append(issue("file", L(f"ไม่มีไฟล์ {fn}", f"Missing file {fn}"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed")))
         junk = ("a.out", ".DS_Store")
         for p in present:
+            if wild:
+                break
             if p in used:
                 continue
             is_junk = p in junk or p.endswith((".o", ".gch", ".swp", ".bak", "~")) or p.startswith(".")
-            res["issues"].append(issue("file", f"มีไฟล์เกินใน {ex}: {p}",
-                                       hint="โจทย์ห้ามมีไฟล์อื่น ลบออกด้วย git rm ก่อน push", fixable=is_junk))
+            res["issues"].append(issue("file", L(f"มีไฟล์เกินใน {ex}: {p}", f"Extra file in {ex}: {p}"),
+                                       hint=L("โจทย์ห้ามมีไฟล์อื่น ลบออกด้วย git rm ก่อน push", "No other files allowed; remove it with git rm before pushing"), fixable=is_junk))
             if is_junk:
                 res["deletes"].append(f"{os.path.basename(exdir)}/{p}")
+        for fn, txt in (override or {}).items():
+            if fn in srcs or fn in spec["files"]:
+                srcs[fn] = txt
         res["sources"] = dict(srcs)
         if len(srcs) < len(spec["files"]):
-            res["status"] = "ไม่มีไฟล์"
+            res["status"] = L("ไม่มีไฟล์", "Missing file")
             self._solution(res, spec)
             return res
 
         # header / main / forbidden  (แก้คอมไพล์ก่อน เพราะเลขบรรทัดอ้างอิงไฟล์เดิม)
         fixed = {fn: (self._fix_compile(fn, t, exdir) if fn.endswith(".c") else t) for fn, t in srcs.items()}
         for fn, txt in srcs.items():
+            if spec["type"] in ("make_prog",) and not fn.endswith((".c", ".h")):
+                continue
+            if spec["type"] == "shell":
+                continue
             if not has_header(txt):
-                res["issues"].append(issue("rule", "ไม่มี 42 header", hint="vim: พิมพ์ :Stdheader", file=fn, line=1,
+                res["issues"].append(issue("rule", L("ไม่มี 42 header", "Missing 42 header"), hint=L("vim: พิมพ์ :Stdheader", "vim: type :Stdheader"), file=fn, line=1,
                                            fixable=True))
                 fixed[fn] = fix_header(fixed[fn], fn)
-            if fn.endswith(".c") and spec["type"] != "prog" and main_line(txt):
-                res["issues"].append(issue("rule", "มีฟังก์ชัน main ในไฟล์ (ห้ามมี)",
-                                           hint="ลบ main ออก ใช้ main ทดสอบในไฟล์อื่นที่ไม่ได้ push",
+            if fn.endswith(".c") and spec["type"] not in ("prog", "make_prog") and main_line(txt):
+                res["issues"].append(issue("rule", L("มีฟังก์ชัน main ในไฟล์ (ห้ามมี)", "File contains a main function (not allowed)"),
+                                           hint=L("ลบ main ออก ใช้ main ทดสอบในไฟล์อื่นที่ไม่ได้ push", "Remove main; test with a separate file you do not push"),
                                            file=fn, line=main_line(txt), fixable=True))
                 fixed[fn] = fix_remove_main(fixed[fn])
 
         # norminette
         norm_issues = self._norm(srcs, exdir)
-        if any(i["title"] == "ไม่มี 42 header" for i in res["issues"]):
+        if any(i["title"] == L("ไม่มี 42 header", "Missing 42 header") for i in res["issues"]):
             norm_issues = [i for i in norm_issues if not i["why"].startswith("INVALID_HEADER")]
         res["issues"] += norm_issues
         if any(i["fixable"] for i in norm_issues):
             for fn in fixed:
-                if fn.endswith((".c", ".h")):
+                if fn.endswith(".c"):
                     fixed[fn] = fix_norm_text(fixed[fn])
 
         # compile + forbidden + tests
@@ -917,27 +1138,32 @@ class Grader:
                         continue
                 res["issues"] += iss
             if not any(i["kind"] == "compile" for i in res["issues"]):
-                res["issues"].append(issue("compile", "คอมไพล์ไม่ผ่าน" if status == "COMPILE" else
-                                           "ชื่อฟังก์ชันหรือ prototype ไม่ตรงโจทย์", why=cc_out.strip()[-600:]))
-            res["status"] = "คอมไพล์ไม่ผ่าน" if status == "COMPILE" else "ใช้กับตัวเทสต์ไม่ได้"
+                res["issues"].append(issue("compile", L("คอมไพล์ไม่ผ่าน", "Does not compile") if status == "COMPILE" else
+                                           L("ชื่อฟังก์ชันหรือ prototype ไม่ตรงโจทย์", "Function name or prototype does not match the subject"), why=cc_out.strip()[-600:]))
+            res["status"] = L("คอมไพล์ไม่ผ่าน", "Does not compile") if status == "COMPILE" else L("ใช้กับตัวเทสต์ไม่ได้", "Cannot be used by the tests")
         else:
             res["issues"] += self._forbidden(spec, srcs)
+            for cs in cases:
+                cs["name"] = en_case(cs["name"])
+                for k in ("exp", "got"):
+                    if k in cs:
+                        cs[k] = en_case(cs[k]) if LANG == "en" and not re.search(r"[A-Za-z0-9$]", re.sub("[\u0e00-\u0e7f ]", "", cs[k])) else cs[k]
             res["cases"] = cases
             if status == "TIMEOUT":
-                res["issues"].append(issue("crash", f"ค้างเกิน {TIMEOUT} วินาที", hint="วนไม่จบ"))
+                res["issues"].append(issue("crash", L(f"ค้างเกิน {TIMEOUT} วินาที", f"Hangs longer than {TIMEOUT} s"), hint=L("วนไม่จบ", "infinite loop")))
             elif status == "CRASH":
-                res["issues"].append(issue("crash", "โปรแกรมพัง (crash/segfault)"))
+                res["issues"].append(issue("crash", L("โปรแกรมพัง (crash/segfault)", "Program crashed (crash/segfault)")))
             for cs in cases:
                 if not cs["ok"]:
-                    res["issues"].append(issue("logic", cs["name"], why=f"ควรได้: {cs.get('exp', '')}\nได้จริง: {cs.get('got', '')}"))
+                    res["issues"].append(issue("logic", cs["name"], why=L(f"ควรได้: {cs.get('exp', '')}\nได้จริง: {cs.get('got', '')}", f"Expected: {cs.get('exp', '')}\nGot: {cs.get('got', '')}")))
             if status != "OK":
-                res["status"] = {"KO": "ผลลัพธ์ผิด", "TIMEOUT": "ค้าง", "CRASH": "พัง"}.get(status, status)
+                res["status"] = {"KO": L("ผลลัพธ์ผิด", "Wrong output"), "TIMEOUT": L("ค้าง", "Hangs"), "CRASH": L("พัง", "Crashes")}.get(status, status)
             if status != "OK":
                 res["hints"] = guess_hints(self.proj, ex, cases, status)
         if res["status"] == "OK" and any(i["kind"] in ("file", "rule", "norm") for i in res["issues"]):
-            res["status"] = "ผิดกฎ/Norm"
+            res["status"] = L("ผิดกฎ/Norm", "Rule/Norm error")
         if res["status"] == "OK" and res["renames"]:
-            res["status"] = "ชื่อไฟล์ผิด"
+            res["status"] = L("ชื่อไฟล์ผิด", "Wrong file name")
 
         # ตรวจเวอร์ชันที่แก้แล้วว่าผ่านไหม
         if fixed != srcs or res["renames"]:
@@ -997,7 +1223,9 @@ class Grader:
         return not [i for i in self._norm(srcs, None)]
 
     def _forbidden(self, spec, srcs):
-        allowed = set(spec["allowed"])
+        allowed = {a.lstrip("_") for a in spec["allowed"]}
+        if "basename" in allowed:
+            allowed.add("xpg_basename")
         objs = []
         wd = tempfile.mkdtemp(dir=self.work)
         for fn, txt in srcs.items():
@@ -1038,8 +1266,8 @@ class Grader:
                         break
                 if ln:
                     break
-            issues.append(issue("rule", f"ใช้ฟังก์ชันต้องห้าม: {shown}",
-                                hint=f"ข้อนี้อนุญาตแค่: {', '.join(spec['allowed']) or 'ไม่มีเลย'}",
+            issues.append(issue("rule", L(f"ใช้ฟังก์ชันต้องห้าม: {shown}", f"Forbidden function used: {shown}"),
+                                hint=L(f"ข้อนี้อนุญาตแค่: {', '.join(spec['allowed']) or 'ไม่มีเลย'}", f"Allowed here: {', '.join(spec['allowed']) or 'nothing'}"),
                                 file=ln[1] if ln else None, line=ln[0] if ln else None))
         return issues
 
@@ -1047,7 +1275,7 @@ class Grader:
         out = {}
         norm = self._norm(fixed, exdir) if self.has_norm else []
         out["norm"] = len(norm) == 0 if self.has_norm else None
-        out["norm_left"] = [f"บรรทัด {i['line']}: {i['title']}" for i in norm][:6]
+        out["norm_left"] = [L(f"บรรทัด {i['line']}: {i['title']}", f"line {i['line']}: {i['title']}") for i in norm][:6]
         status, cc_out, _, cases = self.build_and_test(spec, fixed, exdir)
         out["compile"] = status not in ("COMPILE", "LINK")
         out["tests"] = status == "OK"
@@ -1063,58 +1291,144 @@ class Grader:
                     res["solution"][fn] = read(p)
 
 
-# ───────────────────────── terminal output ─────────────────────────
-BANNER = r"""
-  ╔════════════════════════════════════════════╗
-  ║     ◆  PISCINE GRADER  ·  42 BANGKOK  ◆    ║
-  ╚════════════════════════════════════════════╝"""
+# ───────────────────────── terminal UI ─────────────────────────
+VERSION = "3.0"
 
 
-def print_ex(r):
-    ok = r["status"] == "OK"
-    n_ok = sum(1 for c in r["cases"] if c["ok"])
-    cnt = f"{n_ok}/{len(r['cases'])} เคส" if r["cases"] else ""
-    head = f"  {bold(r['ex'])}  {dim(', '.join(r['files']))}"
-    tag = green("✔ ผ่าน") if ok else red("✘ " + r["status"])
-    print(f"{head}  {dim(cnt)}  {tag}")
-    if ok:
-        return
-    shown = 0
+def dwidth(s):
+    """ความกว้างที่แสดงจริงบนจอ (สระ/วรรณยุกต์ไทยกว้าง 0, emoji กว้าง 2)"""
+    import unicodedata
+    s = re.sub(r"\x1b\[[0-9;]*m", "", s)
+    w = 0
+    for ch in s:
+        if unicodedata.combining(ch) or unicodedata.category(ch) in ("Mn", "Me", "Cf"):
+            continue
+        if ch in "ัิีึืฺุู็่้๊๋์ํ๎":
+            continue
+        w += 2 if unicodedata.east_asian_width(ch) in ("W", "F") or ord(ch) >= 0x1F300 else 1
+    return w
+
+
+def pad(s, n):
+    return s + " " * max(0, n - dwidth(s))
+
+
+def cut(s, n):
+    if dwidth(s) <= n:
+        return s
+    out = ""
+    for ch in s:
+        if dwidth(out + ch + "…") > n:
+            break
+        out += ch
+    return out + "…"
+
+
+def term_width():
+    return max(60, min(110, shutil.get_terminal_size((100, 30)).columns))
+
+
+def box(lines, color="36"):
+    w = max(dwidth(l) for l in lines) + 4
+    w = min(max(w, 48), term_width() - 4)
+    print("  " + c(color, "╭" + "─" * (w - 2) + "╮"))
+    for l in lines:
+        print("  " + c(color, "│") + " " + pad(cut(l, w - 4), w - 4) + " " + c(color, "│"))
+    print("  " + c(color, "╰" + "─" * (w - 2) + "╯"))
+
+
+def banner():
+    login = os.environ.get("USER", "student")
+    lang = "ไทย" if LANG == "th" else "English"
+    print()
+    box([c("1;36", "◆ PISCINE GRADER") + dim(f"   v{VERSION} · 42 Bangkok"),
+         dim(f"{login} · {datetime.datetime.now():%d/%m/%Y %H:%M} · {L('ภาษา', 'lang')}: {lang}")])
+
+
+def kind_label(kind):
+    icon, label = KIND[kind]
+    return f"{icon} {pad(label, 9)}"
+
+
+def print_table(results):
+    w = term_width()
+    fw = max(16, w - 46)
+    head = f"  {pad(L('ข้อ', 'Ex'), 6)}{pad(L('ไฟล์', 'Files'), fw)}{pad(L('เคส', 'Cases'), 9)}{L('ผล', 'Result')}"
+    print(dim(head))
+    print(dim("  " + "─" * (w - 4)))
+    for r in results:
+        ok = r["status"] == "OK"
+        n_ok = sum(1 for x in r["cases"] if x["ok"])
+        cnt = f"{n_ok}/{len(r['cases'])}" if r["cases"] else "—"
+        tag = green("✔ " + L("ผ่าน", "OK")) if ok else red("✘ " + r["status"])
+        files = cut(", ".join(r["files"]), fw - 2)
+        print(f"  {pad(bold(r['ex']), 6)}{pad(dim(files) if ok else files, fw)}{pad(cnt, 9)}{tag}")
+
+
+def print_details(r):
+    fixn = sum(1 for i in r["issues"] if i.get("fixable"))
+    head = f"  {red('✘')} {bold(r['ex'])} {dim('·')} {r['status']}"
+    if fixn:
+        head += dim(L(f"   ⚡ แก้อัตโนมัติได้ {fixn} จุด", f"   ⚡ {fixn} auto-fixable"))
+    print(head)
     by_kind = {}
     for i in r["issues"]:
         by_kind.setdefault(i["kind"], []).append(i)
     for kind in ("file", "rule", "compile", "crash", "norm", "logic"):
         items = by_kind.get(kind, [])
-        if not items:
-            continue
-        icon, label = KIND[kind]
-        limit = 6 if kind != "norm" else 8
+        limit = 8 if kind == "norm" else 6
         for i in items[:limit]:
-            where = f"บรรทัด {i['line']}: " if i.get("line") else ""
-            fx = dim("  [แก้อัตโนมัติได้]") if i.get("fixable") else ""
-            print(f"     {icon} {yellow(label.ljust(9))} {where}{i['title']}{fx}")
+            where = (L(f"บรรทัด {i['line']}", f"line {i['line']}") + "  ") if i.get("line") else ""
+            fx = c("33", " ⚡") if i.get("fixable") else ""
+            print(f"    {dim('│')} {kind_label(kind)} {dim(where)}{i['title']}{fx}")
             if kind == "logic" and i.get("why"):
                 for l in i["why"].split("\n")[:2]:
-                    print(f"                  {dim(l[:110])}")
+                    print(f"    {dim('│')}            {dim(cut(l, term_width() - 20))}")
             elif kind == "file" and i.get("why"):
-                print(f"                  {dim('→ ' + i['why'])}")
+                print(f"    {dim('│')}            {dim('→ ' + i['why'])}")
             elif i.get("hint") and kind in ("file", "compile", "rule"):
-                print(f"                  {dim('→ ' + i['hint'])}")
-            shown += 1
+                print(f"    {dim('│')}            {dim('→ ' + i['hint'])}")
         if len(items) > limit:
-            print(f"                  {dim(f'...และอีก {len(items) - limit} จุด (ดูในหน้าเว็บ)')}")
+            print(f"    {dim('│')}            " + dim(L(f"...และอีก {len(items) - limit} จุด", f"...and {len(items) - limit} more")))
     for h in r["hints"][:2]:
-        print(f"     💡 {blue(h)}")
+        print(f"    {dim('│')} 💡 {blue(h)}")
+    print()
+
+
+def progress(i, n, ex):
+    if not TTY:
+        return
+    w = 24
+    done = int(w * i / max(n, 1))
+    bar = c("36", "█" * done) + dim("░" * (w - done))
+    sys.stdout.write(f"\r\033[2K  {bar} {i}/{n}  {dim(L('กำลังตรวจ', 'checking'))} {ex}")
+    sys.stdout.flush()
 
 
 def summarize(results):
     passed = sum(1 for r in results if r["status"] == "OK")
-    last = "ไม่มี"
+    last = L("ไม่มี", "none")
     for r in results:
         if r["status"] != "OK":
             break
         last = r["ex"]
     return passed, last
+
+
+def print_summary(results):
+    passed, last = summarize(results)
+    bar = "".join(green("■") if r["status"] == "OK" else red("■") for r in results)
+    fixn = sum(1 for r in results for i in r["issues"] if i.get("fixable"))
+    first = next((r["ex"] for r in results if r["status"] != "OK"), "—")
+    lines = [f"{bar}  " + bold(f"{passed}/{len(results)}") + L(" ข้อผ่าน", " passed"),
+             L(f"Moulinette ผ่านถึง {bold(last)}   ·   ข้อแรกที่พัง {bold(first)}",
+               f"Moulinette reaches {bold(last)}   ·   first failure {bold(first)}")]
+    if fixn:
+        lines.append(c("33", L(f"⚡ แก้อัตโนมัติได้ {fixn} จุด", f"⚡ {fixn} problems can be fixed automatically")))
+    print()
+    box(lines, "32" if passed == len(results) else "33")
+    print(dim("  " + L("ตัวตรวจช่วยดูผลเท่านั้น ตอน evaluate ยังต้องให้เพื่อนอธิบายโค้ดตามใบประเมิน",
+                       "The grader only helps; during an evaluation your peer must still explain the code")))
 
 
 # ───────────────────────── menu ─────────────────────────
@@ -1133,51 +1447,61 @@ def getkey():
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
 
-def choose(title, options, default=0):
+def choose(title, options, default=0, hints=None):
     """เมนูเลือกด้วยลูกศร ↑↓ + Enter (ถ้าไม่ใช่ terminal ใช้พิมพ์ตัวเลขแทน)"""
     print("\n  " + bold(title))
     if not (sys.stdin.isatty() and TTY):
         for i, o in enumerate(options):
             print(f"    {i + 1}) {o}")
         try:
-            k = int(input("  เลือกหมายเลข: ").strip() or default + 1) - 1
-        except ValueError:
+            k = int(input(L("  เลือกหมายเลข: ", "  Choose a number: ")).strip() or default + 1) - 1
+        except (ValueError, EOFError):
             k = default
         return max(0, min(k, len(options) - 1))
     idx = default
-    print(dim("  (↑↓ เลือก, Enter ตกลง, q ออก)"))
+    lines = len(options) + 1
 
     def draw(first=False):
         if not first:
-            sys.stdout.write(f"\033[{len(options)}A")
+            sys.stdout.write(f"\033[{lines}A")
         for i, o in enumerate(options):
-            mark = blue("❯ ") + bold(o) if i == idx else "  " + o
-            sys.stdout.write("\033[2K    " + mark + "\n")
+            if i == idx:
+                sys.stdout.write("\033[2K    " + c("36;1", "❯ ") + c("1", o) + "\n")
+            else:
+                sys.stdout.write("\033[2K      " + dim(o) + "\n")
+        tip = (hints[idx] if hints and idx < len(hints) and hints[idx] else
+               L("↑↓ เลือก · Enter ตกลง · q ออก", "↑↓ move · Enter select · q quit"))
+        sys.stdout.write("\033[2K    " + dim(tip) + "\n")
         sys.stdout.flush()
 
-    draw(True)
-    while True:
-        k = getkey()
-        if k in ("\x1b[A", "k"):
-            idx = (idx - 1) % len(options)
-        elif k in ("\x1b[B", "j"):
-            idx = (idx + 1) % len(options)
-        elif k in ("\r", "\n"):
-            return idx
-        elif k in ("q", "\x03"):
-            print()
-            sys.exit(0)
-        elif k.isdigit() and 0 < int(k) <= len(options):
-            idx = int(k) - 1
-        draw()
+    sys.stdout.write("\033[?25l")
+    try:
+        draw(True)
+        while True:
+            k = getkey()
+            if k in ("\x1b[A", "k"):
+                idx = (idx - 1) % len(options)
+            elif k in ("\x1b[B", "j"):
+                idx = (idx + 1) % len(options)
+            elif k in ("\r", "\n"):
+                return idx
+            elif k in ("q", "\x03"):
+                print()
+                sys.exit(0)
+            elif k.isdigit() and 0 < int(k) <= len(options):
+                idx = int(k) - 1
+            draw()
+    finally:
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
 
 
 def ask(prompt, default=""):
     try:
-        import readline  # noqa: F401  (ให้กด Tab เติมชื่อโฟลเดอร์ได้)
+        import glob
+        import readline
         readline.set_completer_delims(" \t\n")
         readline.parse_and_bind("tab: complete")
-        import glob
 
         def comp(text, state):
             m = glob.glob(os.path.expanduser(text) + "*")
@@ -1188,7 +1512,7 @@ def ask(prompt, default=""):
     except ImportError:
         pass
     try:
-        v = input("  " + prompt + (dim(f" [{default}]") if default else "") + ": ").strip()
+        v = input("  " + c("36", "› ") + prompt + (dim(f" [{default}]") if default else "") + ": ").strip()
     except EOFError:
         v = ""
     return v or default
@@ -1205,7 +1529,7 @@ def find_my_work():
             continue
         for d in names:
             p = os.path.join(base, d)
-            if d.startswith(".") or not os.path.isdir(p) or d in ("grade_eval", "piscine-grader"):
+            if d.startswith(".") or not os.path.isdir(p) or d in ("grade_eval", "piscine-grader", "grade_backups"):
                 continue
             try:
                 subs = os.listdir(p)
@@ -1222,11 +1546,12 @@ def clone(url, proj_hint="EVAL"):
     dest = os.path.join(os.path.expanduser("~"), "grade_eval",
                         f"{proj_hint}_{datetime.datetime.now().strftime('%m%d_%H%M%S')}")
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    print(dim(f"  กำลัง clone ไปที่ {dest} ..."))
+    print(dim(L(f"  กำลัง clone ไปที่ {dest} ...", f"  Cloning into {dest} ...")))
     code, out = run(["git", "clone", "-q", url, dest], timeout=120)
     if code != 0:
-        print(red("  clone ไม่สำเร็จ: ") + out.strip()[-300:])
-        print(dim("  เช็กลิงก์อีกที หรือเครื่องนี้ยังไม่ได้ตั้ง SSH key กับ intra"))
+        print(red(L("  clone ไม่สำเร็จ: ", "  Clone failed: ")) + out.strip()[-300:])
+        print(dim(L("  เช็กลิงก์อีกที หรือเครื่องนี้ยังไม่ได้ตั้ง SSH key กับ intra",
+                    "  Check the link, or this computer has no SSH key on the intranet yet")))
         sys.exit(1)
     return dest
 
@@ -1235,39 +1560,90 @@ def is_url(s):
     return bool(re.match(r"^(\S+@\S+:|https?://)", s)) or s.endswith(".git")
 
 
+def settings():
+    k = choose(L("ตั้งค่า", "Settings"), ["🇹🇭  ภาษาไทย", "🇬🇧  English", L("↩  กลับ", "↩  Back")],
+               default=0 if LANG == "th" else 1)
+    if k in (0, 1):
+        save_config(lang="th" if k == 0 else "en")
+        os.environ.pop("GRADER_LANG", None)
+        os.execv(sys.executable, [sys.executable, os.path.abspath(__file__)])
+
+
 def menu():
-    print(c("36;1", BANNER))
-    who = choose("จะตรวจงานของใคร?", ["งานของฉันเอง", "งานเพื่อน (วางลิงก์ git จากหน้า eval)",
-                                      "เลือกโฟลเดอร์เอง", "อัปเดตตัวตรวจ", "ออก"])
-    if who == 4:
-        sys.exit(0)
-    if who == 3:
-        update()
-        sys.exit(0)
+    banner()
+    while True:
+        opts = [L("🧑  ตรวจงานของฉัน", "🧑  Check my work"), L("👥  ตรวจงานเพื่อน", "👥  Check a peer's work"),
+                L("📂  เลือกโฟลเดอร์เอง", "📂  Choose a folder"), L("⚙️   ตั้งค่า / ภาษา", "⚙️   Settings / language"),
+                L("⟳   อัปเดตตัวตรวจ", "⟳   Update the grader"), L("✕   ออก", "✕   Quit")]
+        tips = [L("หาโฟลเดอร์งานใน Home ให้ แก้โค้ดได้", "Finds your project folders; you can edit"),
+                L("วางลิงก์ git จากหน้า eval แล้วจะ clone ให้", "Paste the git link from the eval page"),
+                L("พิมพ์ path เอง (Tab ช่วยเติม)", "Type a path (Tab completes)"),
+                L("เลือกภาษา ไทย/English", "Switch Thai/English"), L("git pull ตัวตรวจ", "git pull the grader"), ""]
+        who = choose(L("จะทำอะไร?", "What do you want to do?"), opts, hints=tips)
+        if who == 5:
+            sys.exit(0)
+        if who == 4:
+            update()
+            continue
+        if who == 3:
+            settings()
+            continue
+        break
     mine = who == 0
     if who == 0:
         works = find_my_work()
-        opts = [f"{os.path.basename(p):<28} {dim(pr):<6} {dim(datetime.datetime.fromtimestamp(t).strftime('%d/%m %H:%M'))}"
-                for t, p, pr in works] + ["พิมพ์ path เอง"]
-        k = choose("เลือกโฟลเดอร์งาน (เรียงจากที่แก้ล่าสุด)", opts)
-        path = works[k][1] if k < len(works) else os.path.expanduser(ask("path ของโฟลเดอร์ (กด Tab ช่วยเติมได้)"))
+        opts = [f"{pad(os.path.basename(p), 26)} {pad(pr, 8)} {datetime.datetime.fromtimestamp(t):%d/%m %H:%M}"
+                for t, p, pr in works] + [L("✎  พิมพ์ path เอง", "✎  Type a path")]
+        k = choose(L("เลือกโฟลเดอร์งาน (เรียงจากที่แก้ล่าสุด)", "Choose your project folder (most recent first)"), opts)
+        path = works[k][1] if k < len(works) else os.path.expanduser(
+            ask(L("path ของโฟลเดอร์ (กด Tab ช่วยเติมได้)", "Folder path (Tab completes)")))
     elif who == 1:
-        url = ask("วางลิงก์ git ของเพื่อน")
+        url = ask(L("วางลิงก์ git ของเพื่อน", "Paste your peer's git link"))
         path = clone(url) if is_url(url) else os.path.expanduser(url)
     else:
-        path = os.path.expanduser(ask("path ของโฟลเดอร์ (กด Tab ช่วยเติมได้)", "."))
+        path = os.path.expanduser(ask(L("path ของโฟลเดอร์ (กด Tab ช่วยเติมได้)", "Folder path (Tab completes)"), "."))
     path = os.path.abspath(path)
     if not os.path.isdir(path):
-        print(red(f"  ไม่เจอโฟลเดอร์ {path}"))
+        print(red(L(f"  ไม่เจอโฟลเดอร์ {path}", f"  Folder not found: {path}")))
         sys.exit(1)
     guesses = detect_project(path)
     projs = list(PROJECTS)
     if guesses:
-        k = choose(f"ดูเหมือนเป็น {guesses[0]} ใช่ไหม?", [f"ใช่ {guesses[0]}", "เลือกเอง"])
-        proj = guesses[0] if k == 0 else projs[choose("เลือกโปรเจกต์", projs)]
+        k = choose(L(f"ดูเหมือนเป็น {guesses[0]} ใช่ไหม?", f"Looks like {guesses[0]}, right?"),
+                   [L(f"ใช่ {guesses[0]}", f"Yes, {guesses[0]}"), L("เลือกเอง", "Choose myself")])
+        proj = guesses[0] if k == 0 else projs[choose(L("เลือกโปรเจกต์", "Choose the project"), projs)]
     else:
-        proj = projs[choose("เลือกโปรเจกต์", projs)]
+        proj = projs[choose(L("เลือกโปรเจกต์", "Choose the project"), projs)]
     return proj, path, mine
+
+
+def after_menu(proj, root, results, mine):
+    """เมนูหลังตรวจเสร็จ"""
+    while True:
+        if mine:
+            opts = [L("🌐  เปิดหน้าเว็บ (แก้โค้ดได้ · Ctrl+S บันทึก+ตรวจใหม่)", "🌐  Open the web editor (Ctrl+S saves + re-checks)"),
+                    L("✏️   แก้ใน vim (]e ไปจุดถัดไป · Tab แก้ให้ · :w ตรวจใหม่)", "✏️   Edit in vim (]e next problem · Tab fix · :w re-check)"),
+                    L("⚡  แก้อัตโนมัติทั้งหมด", "⚡  Auto-fix everything"),
+                    L("🔄  ตรวจใหม่", "🔄  Check again"), L("✕   ออก", "✕   Quit")]
+        else:
+            opts = [L("🌐  เปิดหน้าเว็บ (ดูอย่างเดียว)", "🌐  Open the web report (read only)"),
+                    L("🔄  ตรวจใหม่", "🔄  Check again"), L("✕   ออก", "✕   Quit")]
+        k = choose(L("จะทำอะไรต่อ?", "What next?"), opts)
+        act = (["web", "vim", "fix", "again", "quit"] if mine else ["report", "again", "quit"])[k]
+        if act == "quit":
+            return
+        if act == "report":
+            open_report(write_report(proj, root, results, summarize(results)[1]))
+        elif act == "web":
+            serve(proj, root, results)
+        elif act == "vim":
+            vim_edit(proj, root, results)
+            results = grade(proj, root, mine=mine, web=False, interactive=False)
+        elif act == "fix":
+            if offer_fixes(root, results):
+                results = grade(proj, root, mine=mine, web=False, interactive=False)
+        elif act == "again":
+            results = grade(proj, root, mine=mine, web=False, interactive=False)
 
 
 # ───────────────────────── fix apply ─────────────────────────
@@ -1278,12 +1654,12 @@ def offer_fixes(root, results):
     todo = [r for r in results if r.get("fixed") or r.get("renames") or r.get("deletes")]
     if not todo:
         return False
-    print("\n  " + bold("🔧 สิ่งที่แก้ให้อัตโนมัติได้"))
+    print("\n  " + bold(L("🔧 สิ่งที่แก้ให้อัตโนมัติได้", "🔧 Things that can be fixed automatically")))
     for r in todo:
         for a, b in r.get("renames", []):
-            print(f"     {r['ex']}: เปลี่ยนชื่อ {a} → {b}")
+            print(L(f"     {r['ex']}: เปลี่ยนชื่อ {a} → {b}", f"     {r['ex']}: rename {a} → {b}"))
         for d in r.get("deletes", []):
-            print(f"     {r['ex']}: ลบไฟล์ขยะ {d}")
+            print(L(f"     {r['ex']}: ลบไฟล์ขยะ {d}", f"     {r['ex']}: delete junk file {d}"))
         for fn, txt in (r.get("fixed") or {}).items():
             before = r["sources"].get(fn, "")
             if before == txt:
@@ -1293,27 +1669,27 @@ def offer_fixes(root, results):
             af = r.get("after_fix") or {}
             res = ""
             if af:
-                res = " → หลังแก้: " + ", ".join(x for x in [
-                    (green("norm ✔") if af.get("norm") else red("norm ยังไม่ผ่าน")) if af.get("norm") is not None else "",
-                    green("คอมไพล์ ✔") if af.get("compile") else red("คอมไพล์ยังไม่ผ่าน"),
-                    green("เทสต์ ✔") if af.get("tests") else yellow("เทสต์ยังไม่ผ่าน (ต้องแก้ logic เอง)")] if x)
-            print(f"     {r['ex']}/{fn}: แก้ {changed} บรรทัด{res}")
+                res = L(" → หลังแก้: ", " → after fix: ") + ", ".join(x for x in [
+                    (green("norm ✔") if af.get("norm") else red(L("norm ยังไม่ผ่าน", "norm still fails"))) if af.get("norm") is not None else "",
+                    green(L("คอมไพล์ ✔", "compile ✔")) if af.get("compile") else red(L("คอมไพล์ยังไม่ผ่าน", "still does not compile")),
+                    green(L("เทสต์ ✔", "tests ✔")) if af.get("tests") else yellow(L("เทสต์ยังไม่ผ่าน (ต้องแก้ logic เอง)", "tests still fail (fix the logic yourself)"))] if x)
+            print(L(f"     {r['ex']}/{fn}: แก้ {changed} บรรทัด{res}", f"     {r['ex']}/{fn}: {changed} lines changed{res}"))
             body = [l for l in diff[2:] if not l.startswith("@@") and not re.match(r"^[+-]/\*.*\*/$", l)]
             if not has_header(before) and has_header(txt):
-                print("        " + green("+ ใส่ 42 header"))
+                print("        " + green(L("+ ใส่ 42 header", "+ add 42 header")))
             for l in body[:12]:
                 if l.startswith("+"):
                     print("        " + green(l))
                 elif l.startswith("-"):
                     print("        " + red(l))
             if len(body) > 12:
-                print("        " + dim(f"... อีก {len(body) - 12} บรรทัด (ดูในหน้าเว็บ)"))
+                print("        " + dim(L(f"... อีก {len(body) - 12} บรรทัด (ดูในหน้าเว็บ)", f"... {len(body) - 12} more lines (see the web page)")))
     try:
-        a = input("\n  " + bold("แก้ไฟล์จริงให้เลยไหม?") + dim(" (ไฟล์เดิมสำรองไว้ที่ ~/grade_backups)") + " (y/n): ").strip().lower()
+        a = input("\n  " + bold(L("แก้ไฟล์จริงให้เลยไหม?", "Apply these fixes to your files?")) + dim(L(" (ไฟล์เดิมสำรองไว้ที่ ~/grade_backups)", " (originals backed up in ~/grade_backups)")) + " (y/n): ").strip().lower()
     except EOFError:
         a = "n"
     if a not in ("y", "yes"):
-        print(dim("  ไม่แก้ ดูแบบที่ถูกได้ในหน้าเว็บ (กด Tab)"))
+        print(dim(L("  ไม่แก้ ดูแบบที่ถูกได้ในหน้าเว็บ (กด Tab)", "  Not changed. See the fixed version on the web page (press Tab)")))
         return False
     for r in todo:
         for d in r.get("deletes", []):
@@ -1336,21 +1712,26 @@ def offer_fixes(root, results):
             shutil.copy(p, os.path.join(bdir, fn))
             with open(p, "w", encoding="utf-8") as f:
                 f.write(txt)
-    print(green("  ✔ แก้แล้ว") + dim(f"  ไฟล์เดิมอยู่ที่ ~/grade_backups/{BACKUP_STAMP}/  อย่าลืม git add + commit + push"))
+    print(green(L("  ✔ แก้แล้ว", "  ✔ Fixed")) + dim(L(f"  ไฟล์เดิมอยู่ที่ ~/grade_backups/{BACKUP_STAMP}/  อย่าลืม git add + commit + push", f"  Originals in ~/grade_backups/{BACKUP_STAMP}/  Remember git add + commit + push")))
     return True
 
 
 # ───────────────────────── report ─────────────────────────
-def write_report(proj, root, results, last):
+def render_report(proj, root, results, last, editable=False):
     tpl = read(os.path.join(LIB, "report.html"))
     data = {"proj": proj, "root": root, "time": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "last_ok": last, "results": results, "kinds": {k: list(v) for k, v in KIND.items()}}
+            "last_ok": last, "results": results, "kinds": {k: list(v) for k, v in KIND.items()},
+            "lang": LANG, "editable": editable}
     js = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    return tpl.replace("/*__DATA__*/null", js)
+
+
+def write_report(proj, root, results, last):
     out_dir = os.path.join(os.path.expanduser("~"), "grade_reports")
     os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, f"{proj}_{os.path.basename(root.rstrip('/'))}_{datetime.datetime.now():%m%d_%H%M%S}.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(tpl.replace("/*__DATA__*/null", js))
+        f.write(render_report(proj, root, results, last))
     return out
 
 
@@ -1363,67 +1744,272 @@ def open_report(path):
 
 def update():
     code, out = run(["git", "-C", HERE, "pull", "--ff-only"], timeout=60)
-    print(green("  อัปเดตแล้ว ✔") if code == 0 else red("  อัปเดตไม่สำเร็จ: " + out))
+    print(green(L("  อัปเดตแล้ว ✔", "  Updated ✔")) if code == 0 else red(L("  อัปเดตไม่สำเร็จ: ", "  Update failed: ") + out))
+
+
+# ───────────────────────── web editor (local server) ─────────────────────────
+def spec_of(proj, ex):
+    return next((s for s in PROJECTS[proj] if s["ex"] == ex), None)
+
+
+def serve(proj, root, results):
+    """เปิดหน้าเว็บที่แก้โค้ดได้ (เฉพาะงานตัวเอง) บน 127.0.0.1"""
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    g = Grader(proj, root, mine=True)
+    lock = threading.Lock()
+    state = {"results": results}
+    backed = set()
+
+    class H(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def _send(self, code, body, ctype="application/json"):
+            data = body if isinstance(body, bytes) else body.encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", ctype + "; charset=utf-8")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self):
+            if self.path.split("?")[0] != "/":
+                return self._send(404, "{}")
+            passed, last = summarize(state["results"])
+            self._send(200, render_report(proj, root, state["results"], last, editable=True), "text/html")
+
+        def do_POST(self):
+            try:
+                n = int(self.headers.get("Content-Length", "0"))
+                req = json.loads(self.rfile.read(n).decode("utf-8"))
+                ex, fn, text = req.get("ex"), req.get("file"), req.get("text")
+                spec = spec_of(proj, ex)
+                idx = next(i for i, r in enumerate(state["results"]) if r["ex"] == ex)
+                if not spec or fn not in state["results"][idx]["sources"]:
+                    return self._send(400, json.dumps({"error": "bad file"}))
+                with lock:
+                    if self.path == "/api/save":
+                        p = os.path.join(root, ex, fn)
+                        if p not in backed and os.path.isfile(p):
+                            bdir = os.path.join(os.path.expanduser("~"), "grade_backups", BACKUP_STAMP, ex)
+                            os.makedirs(bdir, exist_ok=True)
+                            shutil.copy(p, os.path.join(bdir, fn))
+                            backed.add(p)
+                        with open(p, "w", encoding="utf-8") as f:
+                            f.write(text)
+                        r = g.grade_ex(spec)
+                        state["results"][idx] = r
+                    else:
+                        r = g.grade_ex(spec, override={fn: text})
+                passed, last = summarize(state["results"])
+                self._send(200, json.dumps({"result": r, "summary": [passed, len(state["results"]), last]},
+                                           ensure_ascii=False))
+            except Exception as e:  # noqa: BLE001
+                self._send(500, json.dumps({"error": str(e)}))
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    url = f"http://127.0.0.1:{srv.server_address[1]}/"
+    print()
+    box([L("🌐 หน้าเว็บแก้โค้ดเปิดอยู่ที่ ", "🌐 Web editor running at ") + c("4", url),
+         dim(L("Ctrl+S = บันทึกและตรวจใหม่ · Tab บนบรรทัดแดง = แก้จุดนั้น", "Ctrl+S = save and re-check · Tab on a red line = fix it")),
+         dim(L("กด Ctrl+C ที่นี่เพื่อกลับเมนู", "Press Ctrl+C here to go back to the menu"))])
+    open_report(url)
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        print()
+    finally:
+        srv.server_close()
+        g.cleanup()
+
+
+# ───────────────────────── vim ─────────────────────────
+def qf_lines(root, results):
+    out = []
+    for r in results:
+        files = list(r["sources"]) or r["files"]
+        for i in r["issues"]:
+            fn = i.get("file") if i.get("file") in r["sources"] else (files[0] if files else None)
+            if not fn:
+                continue
+            path = os.path.join(root, r["ex"], fn)
+            if not os.path.isfile(path):
+                continue
+            label = KIND[i["kind"]][1]
+            fx = " ⚡Tab" if i.get("fixable") else ""
+            msg = f"[{r['ex']} {label}] {i['title']}{fx}"
+            if i.get("hint"):
+                msg += f" → {i['hint']}"
+            if i["kind"] == "logic" and i.get("why"):
+                msg += "  (" + i["why"].replace("\n", " | ") + ")"
+            out.append(f"{path}:{i.get('line') or 1}:1: {msg}")
+    return out
+
+
+VIM_SCRIPT = r'''
+set errorformat=%%f:%%l:%%c:\ %%m
+set laststatus=2
+set encoding=utf-8
+let g:grader_cmd = %(cmd)s
+let g:grader_proj = %(proj)s
+let g:grader_root = %(root)s
+function! GraderCount()
+  return len(getqflist())
+endfunction
+set statusline=%%f\ %%m%%=\ ◆\ grader:\ %%{GraderCount()}\ %(problems)s\ \ ]e/[e\ Tab\ :w\
+function! GraderFix()
+  let ex = fnamemodify(expand('%%:p'), ':h:t')
+  let fn = expand('%%:t')
+  let before = getline(1, '$')
+  let out = systemlist(g:grader_cmd . ' --fix-text ' . g:grader_proj . ' ' . ex . ' ' . shellescape(fn) . ' ' . shellescape(g:grader_root), before)
+  if v:shell_error || out == before
+    echo %(nofix)s
+    return
+  endif
+  call setline(1, out)
+  if line('$') > len(out)
+    silent execute (len(out) + 1) . ',$delete _'
+  endif
+  echo %(fixed)s
+endfunction
+function! GraderRecheck()
+  echo %(checking)s
+  redraw
+  cgetexpr system(g:grader_cmd . ' --qf ' . g:grader_proj . ' ' . shellescape(g:grader_root))
+  redraw!
+  echo printf(%(left)s, len(getqflist()))
+endfunction
+function! GraderShow()
+  for e in getqflist()
+    if e.bufnr == bufnr('%%') && e.lnum == line('.')
+      echo strpart(e.text, 0, &columns - 2)
+      return
+    endif
+  endfor
+endfunction
+nnoremap <silent> ]e :silent! cnext<CR>:call GraderShow()<CR>
+nnoremap <silent> [e :silent! cprev<CR>:call GraderShow()<CR>
+nnoremap <silent> <Tab> :call GraderFix()<CR>
+nnoremap <silent> <F5> :call GraderRecheck()<CR>
+augroup grader
+  autocmd!
+  autocmd BufWritePost *.c,*.h,Makefile,*.sh call GraderRecheck()
+  autocmd CursorMoved * call GraderShow()
+augroup END
+echo %(help)s
+'''
+
+
+def vim_edit(proj, root, results):
+    lines = qf_lines(root, results)
+    if not lines:
+        print(green(L("  ไม่มีจุดให้แก้ในไฟล์ 🎉", "  Nothing to fix in your files 🎉")))
+        return
+    if not have("vim"):
+        print(red(L("  ไม่เจอ vim ในเครื่องนี้", "  vim is not installed")))
+        return
+    tmp = tempfile.mkdtemp(prefix="grader_vim_")
+    qf = os.path.join(tmp, "qf.txt")
+    with open(qf, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    vq = lambda s: "'" + s.replace("'", "''") + "'"
+    cmd = f"{sys.executable} {os.path.abspath(__file__)}"
+    script = VIM_SCRIPT % {
+        "cmd": vq(cmd), "proj": vq(proj), "root": vq(root),
+        "problems": L("จุด", "problems"),
+        "nofix": vq(L("ไม่มีอะไรให้แก้อัตโนมัติในไฟล์นี้", "Nothing to auto-fix in this file")),
+        "fixed": vq(L("⚡ แก้แล้ว (u = ย้อนกลับ, :w = บันทึก+ตรวจใหม่)", "⚡ Fixed (u = undo, :w = save + re-check)")),
+        "checking": vq(L("กำลังตรวจใหม่...", "Re-checking...")),
+        "left": vq(L("ตรวจแล้ว: เหลือ %d จุด  (]e ไปจุดถัดไป)", "Checked: %d problems left  (]e next)")),
+        "help": vq(L("]e/[e = ไปจุดผิดถัดไป/ก่อนหน้า · Tab = แก้อัตโนมัติ · :w = บันทึก+ตรวจใหม่ · :q = ออก",
+                     "]e/[e = next/previous problem · Tab = auto-fix · :w = save + re-check · :q = quit")),
+    }
+    vs = os.path.join(tmp, "grader.vim")
+    with open(vs, "w", encoding="utf-8") as f:
+        f.write(script)
+    subprocess.call(["vim", "-q", qf, "-S", vs])
+    shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ───────────────────────── main ─────────────────────────
-def grade(proj, root, mine=False, web=True, fix=None):
+def grade(proj, root, mine=False, web=True, fix=None, interactive=None, quiet=False):
     g = Grader(proj, root, mine)
-    print()
-    print(f"  {bold('ตรวจ ' + proj)}  {dim(root)}")
-    if not g.has_norm:
-        print(yellow("  ⚠ ไม่เจอ norminette ในเครื่องนี้ ข้ามการเช็ก norm"))
-    known = {e["ex"] for e in PROJECTS[proj]}
-    extra = [d for d in sorted(os.listdir(root)) if d not in known and not d.startswith(".")
-             and not re.match(r"ex\d+", d, re.I)]
-    for d in extra:
-        print(yellow(f"  ⚠ มีของเกินในโฟลเดอร์งาน: {d}"))
-    print()
+    if not quiet:
+        print()
+        print(L(f"  {bold('ตรวจ ' + proj)}  {dim(root)}", f"  {bold('Grading ' + proj)}  {dim(root)}"))
+        if not g.has_norm:
+            print(yellow(L("  ⚠ ไม่เจอ norminette ในเครื่องนี้ ข้ามการเช็ก norm",
+                           "  ⚠ norminette not found on this computer, skipping norm checks")))
+        known = {e["ex"] for e in PROJECTS[proj]}
+        for d in sorted(os.listdir(root)):
+            if d not in known and not d.startswith(".") and not re.match(r"ex\d+", d, re.I):
+                print(yellow(L(f"  ⚠ มีของเกินในโฟลเดอร์งาน: {d}", f"  ⚠ Extra item in the project folder: {d}")))
+        print()
     results = []
+    specs = PROJECTS[proj]
     try:
-        for spec in PROJECTS[proj]:
-            if TTY:
-                sys.stdout.write(dim(f"  ⏳ กำลังตรวจ {spec['ex']} ...") + "\r")
-                sys.stdout.flush()
-            r = g.grade_ex(spec)
-            if TTY:
-                sys.stdout.write("\r\033[2K")
-            print_ex(r)
-            results.append(r)
+        for n, spec in enumerate(specs):
+            if not quiet:
+                progress(n, len(specs), spec["ex"])
+            results.append(g.grade_ex(spec))
     finally:
         g.cleanup()
+    if quiet:
+        return results
+    if TTY:
+        sys.stdout.write("\r\033[2K")
+    print_table(results)
+    bad = [r for r in results if r["status"] != "OK"]
+    if bad:
+        print()
+        for r in bad:
+            print_details(r)
+    print_summary(results)
     passed, last = summarize(results)
-    bar = "".join(green("■") if r["status"] == "OK" else red("■") for r in results)
-    print()
-    print(f"  {bold('สรุป')}  {bar}  ผ่าน {bold(f'{passed}/{len(results)}')} ข้อ  ·  "
-          f"Moulinette ผ่านถึง {bold(last)}")
-    print(dim("  ตัวตรวจช่วยดูผลเท่านั้น ตอน evaluate ยังต้องให้เพื่อนอธิบายโค้ดตามใบประเมิน"))
     if web:
         path = write_report(proj, root, results, last)
-        print(dim(f"  หน้าเว็บ: {path}"))
+        print(dim(L(f"  หน้าเว็บ: {path}", f"  Web report: {path}")))
         open_report(path)
-    if (fix or (fix is None and mine)) and sys.stdin.isatty():
-        if offer_fixes(root, results):
-            print(dim("  ตรวจซ้ำหลังแก้..."))
-            return grade(proj, root, mine=mine, web=web, fix=False)
+    if interactive is None:
+        interactive = sys.stdin.isatty() and TTY
+    if interactive:
+        after_menu(proj, root, results, mine and fix is not False)
     return results
 
 
 def main(argv):
+    if argv[:1] == ["--fix-text"] and len(argv) >= 5:
+        proj, ex, fn, root = argv[1:5]
+        text = sys.stdin.read()
+        g = Grader(proj, os.path.abspath(root), mine=True)
+        try:
+            r = g.grade_ex(spec_of(proj, ex), override={fn: text})
+        finally:
+            g.cleanup()
+        sys.stdout.write((r.get("fixed") or {}).get(fn, text))
+        return
+    if argv[:1] == ["--qf"] and len(argv) >= 3:
+        results = grade(argv[1], os.path.abspath(argv[2]), quiet=True)
+        print("\n".join(qf_lines(os.path.abspath(argv[2]), results)))
+        return
     web = "--no-web" not in argv
     fix = True if "--fix" in argv else (False if "--peer" in argv else None)
     args = [a for a in argv if not a.startswith("--")]
     if not args:
         proj, root, mine = menu()
-        return grade(proj, root, mine=mine, web=web, fix=fix)
-    first = args[0].upper()
+        grade(proj, root, mine=mine, web=False, fix=fix)
+        return
+    first = {k.upper(): k for k in PROJECTS}.get(args[0].upper(), args[0].upper())
     if first == "UPDATE":
         return update()
     if first in ("HELP", "-H"):
         print(__doc__)
         return
     if first not in PROJECTS:
-        print(red(f"  ไม่รู้จักโปรเจกต์ {args[0]}") + dim(f"  (มี: {' '.join(PROJECTS)})"))
+        print(red(L(f"  ไม่รู้จักโปรเจกต์ {args[0]}", f"  Unknown project {args[0]}")) +
+              dim(L(f"  (มี: {' '.join(PROJECTS)})", f"  (available: {' '.join(PROJECTS)})")))
         print(__doc__)
         sys.exit(1)
     target = args[1] if len(args) > 1 else "."
@@ -1433,11 +2019,13 @@ def main(argv):
     else:
         root = os.path.abspath(os.path.expanduser(target))
         if not os.path.isdir(root):
-            print(red(f"  ไม่เจอโฟลเดอร์ {root}"))
+            print(red(L(f"  ไม่เจอโฟลเดอร์ {root}", f"  Folder not found: {root}")))
             sys.exit(1)
         login = os.environ.get("USER", "")
         mine = bool(login) and any(f"By: {login} " in read(os.path.join(dp, f))
                                    for dp, _, fs in os.walk(root) if ".git" not in dp for f in fs if f.endswith(".c"))
+        if fix:
+            mine = True
     grade(first, root, mine=mine, web=web, fix=fix)
 
 

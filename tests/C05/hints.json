@@ -2,91 +2,109 @@
  "ex00": [
   {
    "match": "-",
-   "hint": "nb ติดลบต้อง return 0"
+   "hint": "nb ติดลบต้อง return 0",
+   "hint_en": "Negative nb returns 0"
   },
   {
    "match": "\\(0\\)",
-   "hint": "0! = 1"
+   "hint": "0! = 1",
+   "hint_en": "0! = 1"
   }
  ],
  "ex01": [
   {
    "match": "-",
-   "hint": "nb ติดลบต้อง return 0"
+   "hint": "nb ติดลบต้อง return 0",
+   "hint_en": "Negative nb returns 0"
   },
   {
    "match": "\\(0\\)",
-   "hint": "0! = 1"
+   "hint": "0! = 1",
+   "hint_en": "0! = 1"
   }
  ],
  "ex02": [
   {
    "match": ", -",
-   "hint": "power ติดลบต้อง return 0"
+   "hint": "power ติดลบต้อง return 0",
+   "hint_en": "Negative power returns 0"
   },
   {
    "match": "0, 0",
-   "hint": "0 ยกกำลัง 0 = 1"
+   "hint": "0 ยกกำลัง 0 = 1",
+   "hint_en": "0 to the power 0 = 1"
   }
  ],
  "ex03": [
   {
    "match": ", -",
-   "hint": "power ติดลบต้อง return 0"
+   "hint": "power ติดลบต้อง return 0",
+   "hint_en": "Negative power returns 0"
   },
   {
    "match": "0, 0",
-   "hint": "0 ยกกำลัง 0 = 1"
+   "hint": "0 ยกกำลัง 0 = 1",
+   "hint_en": "0 to the power 0 = 1"
   }
  ],
  "ex04": [
   {
    "match": "-",
-   "hint": "index ติดลบต้อง return -1"
+   "hint": "index ติดลบต้อง return -1",
+   "hint_en": "Negative index returns -1"
   },
   {
    "match": "*",
-   "hint": "fib(0) = 0, fib(1) = 1, fib(n) = fib(n-1) + fib(n-2) (ต้องเป็น recursive)"
+   "hint": "fib(0) = 0, fib(1) = 1, fib(n) = fib(n-1) + fib(n-2) (ต้องเป็น recursive)",
+   "hint_en": "fib(0) = 0, fib(1) = 1, fib(n) = fib(n-1) + fib(n-2) (must be recursive)"
   }
  ],
  "ex05": [
   {
    "match": "2147",
-   "hint": "ตัวเลขใหญ่: i * i จะล้น int ใช้ long หรือหยุดที่ i <= 46341"
+   "hint": "ตัวเลขใหญ่: i * i จะล้น int ใช้ long หรือหยุดที่ i <= 46341",
+   "hint_en": "Big numbers: i * i overflows an int; use a long or stop at i <= 46341"
   },
   {
    "match": "*",
-   "hint": "ถ้าไม่ใช่กำลังสองสมบูรณ์ต้อง return 0"
+   "hint": "ถ้าไม่ใช่กำลังสองสมบูรณ์ต้อง return 0",
+   "hint_en": "Not a perfect square returns 0"
   }
  ],
  "ex06": [
   {
    "match": "2147483647",
-   "hint": "ต้องเร็ว: วนแค่ i * i <= nb (ใช้ long กันล้น) ไม่ต้องวนถึง nb"
+   "hint": "ต้องเร็ว: วนแค่ i * i <= nb (ใช้ long กันล้น) ไม่ต้องวนถึง nb",
+   "hint_en": "Must be fast: loop only while i * i <= nb (use a long), not up to nb"
   },
   {
    "match": "\\(0\\)|\\(1\\)|-",
-   "hint": "0, 1 และเลขติดลบไม่ใช่จำนวนเฉพาะ"
+   "hint": "0, 1 และเลขติดลบไม่ใช่จำนวนเฉพาะ",
+   "hint_en": "0, 1 and negatives are not prime"
   }
  ],
  "ex07": [
   {
    "match": "2147483646|2147483647",
-   "hint": "ใช้ is_prime แบบเร็ว (i * i <= nb) ไม่งั้นจะค้าง"
+   "hint": "ใช้ is_prime แบบเร็ว (i * i <= nb) ไม่งั้นจะค้าง",
+   "hint_en": "Use a fast is_prime (i * i <= nb) or it will hang"
   },
   {
    "match": "-|\\(0\\)|\\(1\\)",
-   "hint": "เลขที่ต่ำกว่า 2 ต้องตอบ 2"
+   "hint": "เลขที่ต่ำกว่า 2 ต้องตอบ 2",
+   "hint_en": "Anything below 2 returns 2"
   }
  ],
  "ex08": [
   {
    "match": "return",
-   "hint": "กระดาน 10×10 มีคำตอบ 724 แบบ (92 คือของ 8×8)"
+   "hint": "กระดาน 10×10 มีคำตอบ 724 แบบ (92 คือของ 8×8)",
+   "hint_en": "A 10×10 board has 724 solutions (92 is for 8×8)"
   },
   {
    "match": "*",
-   "hint": "backtracking ทีละคอลัมน์ เช็กแถวซ้ำและแนวทแยง |row - r| == |col - c|; พิมพ์ตำแหน่งแถวของแต่ละคอลัมน์ 10 หลักแล้ว \\n"
+   "hint": "backtracking ทีละคอลัมน์ เช็กแถวซ้ำและแนวทแยง |row - r| == |col - c|; พิมพ์ตำแหน่งแถวของแต่ละคอลัมน์ 10 หลักแล้ว \\n",
+   "hint_en": "Backtrack column by column, check rows and diagonals |row - r| == |col - c|; print the 10 row digits then \\n"
   }
  ]
 }

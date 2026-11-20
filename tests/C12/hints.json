@@ -1,0 +1,23 @@
+{
+ "ex05": [
+  {
+   "match": "*",
+   "hint": "ใส่ทีละตัวที่หัว list ตัวแรกของ strs จะไปอยู่ท้าย",
+   "hint_en": "Push each one at the front, so the first string ends up last"
+  }
+ ],
+ "ex12": [
+  {
+   "match": "*",
+   "hint": "ระวังตอนลบตัวแรกของ list ต้องอัปเดต *begin_list ด้วย",
+   "hint_en": "When removing the first element, update *begin_list"
+  }
+ ],
+ "ex13": [
+  {
+   "match": "*",
+   "hint": "หาตัวสุดท้ายของ list1 แล้วต่อ next ไปที่ list2 ถ้า list1 ว่างให้ *begin_list1 = list2",
+   "hint_en": "Find the last element of list1 and link it to list2; if list1 is empty set *begin_list1 = list2"
+  }
+ ]
+}

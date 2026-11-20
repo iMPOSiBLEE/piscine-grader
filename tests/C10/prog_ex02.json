@@ -1,0 +1,11 @@
+{"binary": "ft_tail", "rules": ["all", "clean", "fclean"], "cases": [
+ {"args": ["-c", "5", "small.txt"], "ref": "tail"},
+ {"args": ["-c", "1", "small.txt"], "ref": "tail"},
+ {"args": ["-c", "0", "small.txt"], "ref": "tail"},
+ {"args": ["-c", "1000", "small.txt"], "ref": "tail"},
+ {"args": ["-c", "300", "big.txt"], "ref": "tail"},
+ {"args": ["-c", "20", "small.txt", "big.txt"], "ref": "tail"},
+ {"args": ["-c", "3", "nofile"], "ref": "tail"},
+ {"args": ["-c", "10", "small.txt", "nofile", "empty.txt"], "ref": "tail"},
+ {"args": ["-c", "8", "bin.dat"], "ref": "tail"}
+]}

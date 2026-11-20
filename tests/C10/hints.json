@@ -1,0 +1,50 @@
+{
+ "ex00": [
+  {
+   "match": "missing|Too many|Cannot",
+   "hint": "ข้อความ error ต้องเขียนไปที่ stderr (fd 2) ตรงตามโจทย์ และต้องขึ้นบรรทัดใหม่",
+   "hint_en": "Error messages go to stderr (fd 2), exactly as in the subject, followed by a newline"
+  },
+  {
+   "match": "*",
+   "hint": "open → read ด้วย buffer ขนาดคงที่ วนจนกว่า read คืน 0 → write ทุกครั้ง → close",
+   "hint_en": "open → read into a fixed buffer until read returns 0 → write each chunk → close"
+  }
+ ],
+ "ex01": [
+  {
+   "match": "nofile|dir",
+   "hint": "error ใช้รูปแบบ ชื่อโปรแกรม: ไฟล์: strerror(errno) ไปที่ stderr แล้วทำไฟล์ต่อไปต่อ",
+   "hint_en": "Errors look like prog: file: strerror(errno) on stderr, then continue with the next file"
+  },
+  {
+   "match": "stdin|-",
+   "hint": "ไม่มี argument หรือเจอ \"-\" ให้อ่านจาก stdin (fd 0)",
+   "hint_en": "No argument or \"-\" means read stdin (fd 0)"
+  }
+ ],
+ "ex02": [
+  {
+   "match": "big|20",
+   "hint": "หลายไฟล์ต้องมีหัว ==> ชื่อ <== และบรรทัดว่างคั่นระหว่างไฟล์",
+   "hint_en": "Several files need ==> name <== headers with an empty line between files"
+  },
+  {
+   "match": "*",
+   "hint": "อ่านทั้งไฟล์เข้า buffer (malloc) แล้ว write N ไบต์สุดท้าย",
+   "hint_en": "Read the whole file into a malloc'd buffer, then write the last N bytes"
+  }
+ ],
+ "ex03": [
+  {
+   "match": "bin|\\*",
+   "hint": "บรรทัดที่ซ้ำกับบรรทัดก่อนหน้าทั้ง 16 ไบต์ให้พิมพ์ * ครั้งเดียว",
+   "hint_en": "A line identical to the previous 16 bytes prints a single *"
+  },
+  {
+   "match": "*",
+   "hint": "รูปแบบ: offset 8 หลัก, 2 ช่อง, 8 ไบต์, ช่องเพิ่ม 1, 8 ไบต์, |ตัวอักษร| และบรรทัดสุดท้ายเป็น offset รวม",
+   "hint_en": "Format: 8-digit offset, 2 spaces, 8 bytes, extra space, 8 bytes, |chars|; the last line is the total offset"
+  }
+ ]
+}

@@ -2,41 +2,48 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "ft.h ต้องมี prototype 5 ตัว และ #ifndef FT_H / # define FT_H / #endif"
+   "hint": "ft.h ต้องมี prototype 5 ตัว และ #ifndef FT_H / # define FT_H / #endif",
+   "hint_en": "ft.h needs the 5 prototypes and #ifndef FT_H / # define FT_H / #endif"
   }
  ],
  "ex01": [
   {
    "match": "EVEN\\(2 \\+ 1\\)",
-   "hint": "macro ต้องใส่วงเล็บรอบ argument: # define EVEN(nbr) ((nbr) % 2 == 0)"
+   "hint": "macro ต้องใส่วงเล็บรอบ argument: # define EVEN(nbr) ((nbr) % 2 == 0)",
+   "hint_en": "Wrap the macro argument: # define EVEN(nbr) ((nbr) % 2 == 0)"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "# define ABS(Value) ((Value) < 0 ? -(Value) : (Value)) ใส่วงเล็บทั้งรอบ Value และรอบทั้ง macro"
+   "hint": "# define ABS(Value) ((Value) < 0 ? -(Value) : (Value)) ใส่วงเล็บทั้งรอบ Value และรอบทั้ง macro",
+   "hint_en": "# define ABS(Value) ((Value) < 0 ? -(Value) : (Value)) with parentheses around Value and the whole macro"
   }
  ],
  "ex03": [
   {
    "match": "*",
-   "hint": "typedef struct s_point { int x; int y; } t_point;"
+   "hint": "typedef struct s_point { int x; int y; } t_point;",
+   "hint_en": "typedef struct s_point { int x; int y; } t_point;"
   }
  ],
  "ex04": [
   {
    "match": "\\[3\\]",
-   "hint": "ช่องสุดท้ายของ array ต้องมี str = 0"
+   "hint": "ช่องสุดท้ายของ array ต้องมี str = 0",
+   "hint_en": "The last slot of the array needs str = 0"
   },
   {
    "match": "copy",
-   "hint": "copy ต้อง malloc ใหม่ ไม่ใช่ชี้ไปที่ av"
+   "hint": "copy ต้อง malloc ใหม่ ไม่ใช่ชี้ไปที่ av",
+   "hint_en": "copy must be a new malloc, not a pointer to av"
   }
  ],
  "ex05": [
   {
    "match": "*",
-   "hint": "แต่ละช่อง: พิมพ์ str\\n แล้ว size (เป็นตัวเลข)\\n แล้ว copy\\n จนเจอ str == 0"
+   "hint": "แต่ละช่อง: พิมพ์ str\\n แล้ว size (เป็นตัวเลข)\\n แล้ว copy\\n จนเจอ str == 0",
+   "hint_en": "For each slot print str\\n then size (as a number)\\n then copy\\n until str == 0"
   }
  ]
 }

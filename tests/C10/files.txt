@@ -1,0 +1,4 @@
+ex00 make_prog * close,open,read,write
+ex01 make_prog * close,open,read,write,strerror,basename,errno_location,error
+ex02 make_prog * close,open,read,write,malloc,free,strerror,basename,errno_location,error
+ex03 make_prog * close,open,read,write,malloc,free,strerror,basename,errno_location,error

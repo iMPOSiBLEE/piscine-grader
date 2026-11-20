@@ -2,67 +2,79 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "ฟังก์ชันต้องพิมพ์ตัว c ที่ได้รับมา: write(1, &c, 1); ไม่ต้องสร้างตัวแปรใหม่"
+   "hint": "ฟังก์ชันต้องพิมพ์ตัว c ที่ได้รับมา: write(1, &c, 1); ไม่ต้องสร้างตัวแปรใหม่",
+   "hint_en": "Print the char you received: write(1, &c, 1); no new variable needed"
   }
  ],
  "ex01": [
   {
    "match": "*",
-   "hint": "เริ่ม letter = 'a' แล้ววน while (letter <= 'z') พิมพ์แล้ว letter++"
+   "hint": "เริ่ม letter = 'a' แล้ววน while (letter <= 'z') พิมพ์แล้ว letter++",
+   "hint_en": "Start with letter = 'a', loop while (letter <= 'z'), print, then letter++"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "เริ่มที่ 'z' แล้วถอยด้วย letter-- จนถึง 'a' (ใช้ >= 'a')"
+   "hint": "เริ่มที่ 'z' แล้วถอยด้วย letter-- จนถึง 'a' (ใช้ >= 'a')",
+   "hint_en": "Start at 'z' and go down with letter-- until 'a' (use >= 'a')"
   }
  ],
  "ex03": [
   {
    "match": "*",
-   "hint": "พิมพ์ตัวอักษร '0' ถึง '9' (เป็น char ไม่ใช่เลข 0–9)"
+   "hint": "พิมพ์ตัวอักษร '0' ถึง '9' (เป็น char ไม่ใช่เลข 0–9)",
+   "hint_en": "Print the characters '0' to '9' (chars, not numbers 0-9)"
   }
  ],
  "ex04": [
   {
    "match": "0",
-   "hint": "0 ไม่ติดลบ ต้องพิมพ์ P (ใช้ n < 0 ไม่ใช่ n <= 0)"
+   "hint": "0 ไม่ติดลบ ต้องพิมพ์ P (ใช้ n < 0 ไม่ใช่ n <= 0)",
+   "hint_en": "0 is not negative: print P (use n < 0, not n <= 0)"
   },
   {
    "match": "*",
-   "hint": "ติดลบพิมพ์ 'N' ไม่ติดลบพิมพ์ 'P' ไม่ต้องขึ้นบรรทัดใหม่"
+   "hint": "ติดลบพิมพ์ 'N' ไม่ติดลบพิมพ์ 'P' ไม่ต้องขึ้นบรรทัดใหม่",
+   "hint_en": "Negative prints 'N', otherwise 'P', no newline"
   }
  ],
  "ex05": [
   {
    "match": "*",
-   "hint": "3 ลูปซ้อน a<b<c; หลังทุกชุดพิมพ์ \", \" ยกเว้นชุดสุดท้าย 789"
+   "hint": "3 ลูปซ้อน a<b<c; หลังทุกชุดพิมพ์ \", \" ยกเว้นชุดสุดท้าย 789",
+   "hint_en": "3 nested loops with a<b<c; print \", \" after every group except the last 789"
   }
  ],
  "ex06": [
   {
    "match": "*",
-   "hint": "2 ลูป a < b ตั้งแต่ 00 ถึง 99 พิมพ์แบบ 2 หลักเสมอ (a / 10 และ a % 10) และไม่มี , หลัง 98 99"
+   "hint": "2 ลูป a < b ตั้งแต่ 00 ถึง 99 พิมพ์แบบ 2 หลักเสมอ (a / 10 และ a % 10) และไม่มี , หลัง 98 99",
+   "hint_en": "2 loops with a < b from 00 to 99, always 2 digits (a / 10 and a % 10), no comma after 98 99"
   }
  ],
  "ex07": [
   {
    "match": "INT_MIN|2147483648",
-   "hint": "INT_MIN (-2147483648) กลับเครื่องหมายแล้วล้น int ให้เก็บใน long ก่อน หรือแยกเคสพิเศษ"
+   "hint": "INT_MIN (-2147483648) กลับเครื่องหมายแล้วล้น int ให้เก็บใน long ก่อน หรือแยกเคสพิเศษ",
+   "hint_en": "INT_MIN (-2147483648) overflows when negated; store it in a long or handle it separately"
   },
   {
    "match": "\\(0\\)",
-   "hint": "เลข 0 ต้องพิมพ์ '0' อย่างน้อย 1 ตัว"
+   "hint": "เลข 0 ต้องพิมพ์ '0' อย่างน้อย 1 ตัว",
+   "hint_en": "0 must print '0'"
   },
   {
    "match": "*",
-   "hint": "พิมพ์ทีละหลักจากซ้าย: ถ้า n >= 10 เรียก ft_putnbr(n / 10) ก่อน แล้วพิมพ์ n % 10 + '0'"
+   "hint": "พิมพ์ทีละหลักจากซ้าย: ถ้า n >= 10 เรียก ft_putnbr(n / 10) ก่อน แล้วพิมพ์ n % 10 + '0'",
+   "hint_en": "Print left to right: if n >= 10 call ft_putnbr(n / 10) first, then print n % 10 + '0'"
   }
  ],
  "ex08": [
   {
    "match": "*",
-   "hint": "ใช้ recursion เติมหลักทีละตำแหน่ง ตัวถัดไปต้องมากกว่าตัวก่อน; คั่นด้วย \", \" ยกเว้นชุดสุดท้าย"
+   "hint": "ใช้ recursion เติมหลักทีละตำแหน่ง ตัวถัดไปต้องมากกว่าตัวก่อน; คั่นด้วย \", \" ยกเว้นชุดสุดท้าย",
+   "hint_en": "Use recursion to fill one digit at a time, each larger than the previous; separate with \", \" except after the last"
   }
  ]
 }

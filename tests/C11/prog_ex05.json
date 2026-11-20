@@ -1,0 +1,17 @@
+{"binary": "do-op", "rules": ["all", "clean", "fclean"],
+ "cases": [
+  {"args": [], "stdout": ""},
+  {"args": ["1", "+", "1"], "stdout": "2\n"},
+  {"args": ["42amis", "-", "--+-20toto12"], "stdout": "62\n"},
+  {"args": ["1", "p", "1"], "stdout": "0\n"},
+  {"args": ["1", "+", "toto3"], "stdout": "1\n"},
+  {"args": ["toto3", "+", "4"], "stdout": "4\n"},
+  {"args": ["foo", "plus", "bar"], "stdout": "0\n"},
+  {"args": ["25", "/", "0"], "stdout": "Stop : division by zero\n"},
+  {"args": ["25", "%", "0"], "stdout": "Stop : modulo by zero\n"},
+  {"args": ["10", "*", "-3"], "stdout": "-30\n"},
+  {"args": ["17", "%", "5"], "stdout": "2\n"},
+  {"args": ["-7", "/", "2"], "stdout": "-3\n"},
+  {"args": ["1", "+"], "stdout": ""},
+  {"args": ["1", "++", "1"], "stdout": "0\n"}
+ ]}

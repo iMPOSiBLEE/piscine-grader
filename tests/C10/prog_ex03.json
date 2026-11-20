@@ -1,0 +1,8 @@
+{"binary": "ft_hexdump", "rules": ["all", "clean", "fclean"], "cases": [
+ {"args": ["-C", "small.txt"], "ref": "hexdump_C"},
+ {"args": ["-C", "bin.dat"], "ref": "hexdump_C"},
+ {"args": ["-C", "empty.txt"], "ref": "hexdump_C"},
+ {"args": ["-C", "big.txt"], "ref": "hexdump_C"},
+ {"args": ["-C", "small.txt", "bin.dat"], "ref": "hexdump_C"},
+ {"args": ["-C", "nofile", "small.txt"], "ref": "hexdump_C", "check_stderr": false}
+]}

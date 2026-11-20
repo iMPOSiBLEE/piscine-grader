@@ -2,23 +2,27 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "cc -Wall -Wextra -Werror -c *.c แล้ว ar rcs libft.a *.o"
+   "hint": "cc -Wall -Wextra -Werror -c *.c แล้ว ar rcs libft.a *.o",
+   "hint_en": "cc -Wall -Wextra -Werror -c *.c then ar rcs libft.a *.o"
   }
  ],
  "ex01": [
   {
    "match": "ซ้ำ",
-   "hint": "rule $(NAME) ต้องขึ้นกับ $(OBJS) และ .o ต้องสร้างจาก .c ด้วย rule %.o: %.c"
+   "hint": "rule $(NAME) ต้องขึ้นกับ $(OBJS) และ .o ต้องสร้างจาก .c ด้วย rule %.o: %.c",
+   "hint_en": "$(NAME) must depend on $(OBJS), and .o built from .c with a %.o: %.c rule"
   },
   {
    "match": "clean",
-   "hint": "clean ลบ .o, fclean = clean + ลบ libft.a, re = fclean all"
+   "hint": "clean ลบ .o, fclean = clean + ลบ libft.a, re = fclean all",
+   "hint_en": "clean removes .o, fclean = clean + remove libft.a, re = fclean all"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "เหมือน C07 ex05"
+   "hint": "เหมือน C07 ex05",
+   "hint_en": "Same as C07 ex05"
   }
  ]
 }

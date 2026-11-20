@@ -2,49 +2,58 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "วนจนกว่าตัวจะต่างกันหรือเจอ '\\0' แล้ว return s1[i] - s2[i]"
+   "hint": "วนจนกว่าตัวจะต่างกันหรือเจอ '\\0' แล้ว return s1[i] - s2[i]",
+   "hint_en": "Loop until the chars differ or '\\0', then return s1[i] - s2[i]"
   }
  ],
  "ex01": [
   {
    "match": ", 0\\)",
-   "hint": "n = 0 ต้อง return 0 ทันที"
+   "hint": "n = 0 ต้อง return 0 ทันที",
+   "hint_en": "n = 0 must return 0 right away"
   },
   {
    "match": "*",
-   "hint": "เหมือน strcmp แต่หยุดเมื่อเทียบครบ n ตัว"
+   "hint": "เหมือน strcmp แต่หยุดเมื่อเทียบครบ n ตัว",
+   "hint_en": "Like strcmp, but stop after n chars"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "หาจุดจบของ dest ก่อน แล้วก๊อป src ต่อท้าย ปิดด้วย '\\0' แล้ว return dest"
+   "hint": "หาจุดจบของ dest ก่อน แล้วก๊อป src ต่อท้าย ปิดด้วย '\\0' แล้ว return dest",
+   "hint_en": "Find the end of dest, copy src after it, end with '\\0', return dest"
   }
  ],
  "ex03": [
   {
    "match": "*",
-   "hint": "ต่อท้ายไม่เกิน nb ตัว และต้องปิดด้วย '\\0' เสมอ"
+   "hint": "ต่อท้ายไม่เกิน nb ตัว และต้องปิดด้วย '\\0' เสมอ",
+   "hint_en": "Append at most nb chars and always end with '\\0'"
   }
  ],
  "ex04": [
   {
    "match": "\"\"\\)",
-   "hint": "to_find ว่าง ต้อง return str"
+   "hint": "to_find ว่าง ต้อง return str",
+   "hint_en": "Empty to_find returns str"
   },
   {
    "match": "*",
-   "hint": "ทุกตำแหน่ง i ลองเทียบ to_find ทั้งคำ ถ้าตรงครบ return &str[i] ถ้าไม่เจอ return 0 (NULL)"
+   "hint": "ทุกตำแหน่ง i ลองเทียบ to_find ทั้งคำ ถ้าตรงครบ return &str[i] ถ้าไม่เจอ return 0 (NULL)",
+   "hint_en": "For each position try to match the whole to_find; return &str[i] or 0 (NULL)"
   }
  ],
  "ex05": [
   {
    "match": "return",
-   "hint": "ค่าที่ return = strlen(src) + min(size, strlen(dest)) ถ้า size <= ความยาว dest ให้ return size + strlen(src)"
+   "hint": "ค่าที่ return = strlen(src) + min(size, strlen(dest)) ถ้า size <= ความยาว dest ให้ return size + strlen(src)",
+   "hint_en": "Return strlen(src) + min(size, strlen(dest)); if size <= strlen(dest) return size + strlen(src)"
   },
   {
    "match": "*",
-   "hint": "ต่อท้ายได้จนความยาวรวมถึง size - 1 แล้วปิดด้วย '\\0'"
+   "hint": "ต่อท้ายได้จนความยาวรวมถึง size - 1 แล้วปิดด้วย '\\0'",
+   "hint_en": "Append until total length reaches size - 1, then '\\0'"
   }
  ]
 }

@@ -2,37 +2,44 @@
  "ex02": [
   {
    "match": "INT_MIN|2147483648",
-   "hint": "INT_MIN กลับเครื่องหมายแล้วล้น ใช้ long หรือแยกเคสพิเศษ"
+   "hint": "INT_MIN กลับเครื่องหมายแล้วล้น ใช้ long หรือแยกเคสพิเศษ",
+   "hint_en": "INT_MIN overflows when negated: use a long or a special case"
   }
  ],
  "ex03": [
   {
    "match": "---\\+--\\+",
-   "hint": "ข้าม whitespace → นับ - ทั้งหมด (คี่ = ติดลบ) ข้าม + ด้วย → อ่านตัวเลขจนเจอตัวที่ไม่ใช่เลข"
+   "hint": "ข้าม whitespace → นับ - ทั้งหมด (คี่ = ติดลบ) ข้าม + ด้วย → อ่านตัวเลขจนเจอตัวที่ไม่ใช่เลข",
+   "hint_en": "Skip whitespace → count all '-' (odd = negative), skip '+' too → read digits until a non-digit"
   },
   {
    "match": "*",
-   "hint": "whitespace คือ ' ' และ 9–13 (\\t \\n \\v \\f \\r)"
+   "hint": "whitespace คือ ' ' และ 9–13 (\\t \\n \\v \\f \\r)",
+   "hint_en": "Whitespace is ' ' and 9-13 (\\t \\n \\v \\f \\r)"
   }
  ],
  "ex04": [
   {
    "match": "\"\"|\"0\"|0120|\\+|-01",
-   "hint": "base ผิด (ยาว < 2, มีตัวซ้ำ, มี + หรือ -) ต้องไม่พิมพ์อะไรเลย"
+   "hint": "base ผิด (ยาว < 2, มีตัวซ้ำ, มี + หรือ -) ต้องไม่พิมพ์อะไรเลย",
+   "hint_en": "An invalid base (length < 2, duplicate, + or -) prints nothing"
   },
   {
    "match": "INT_MIN",
-   "hint": "INT_MIN ล้นเมื่อกลับเครื่องหมาย ใช้ long"
+   "hint": "INT_MIN ล้นเมื่อกลับเครื่องหมาย ใช้ long",
+   "hint_en": "INT_MIN overflows when negated; use a long"
   }
  ],
  "ex05": [
   {
    "match": "\"\"|\"1\"|\\+|01 23|0112",
-   "hint": "base ผิด (ยาว < 2, ตัวซ้ำ, มี + - หรือ whitespace) ต้อง return 0"
+   "hint": "base ผิด (ยาว < 2, ตัวซ้ำ, มี + - หรือ whitespace) ต้อง return 0",
+   "hint_en": "An invalid base (length < 2, duplicate, + - or whitespace) returns 0"
   },
   {
    "match": "*",
-   "hint": "ทำแบบ ft_atoi แต่หาตำแหน่งของแต่ละตัวใน base แทน c - '0'"
+   "hint": "ทำแบบ ft_atoi แต่หาตำแหน่งของแต่ละตัวใน base แทน c - '0'",
+   "hint_en": "Like ft_atoi, but use the position of each char in base instead of c - '0'"
   }
  ]
 }

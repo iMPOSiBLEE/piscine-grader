@@ -1,0 +1,12 @@
+{"binary": "ft_cat", "rules": ["all", "clean", "fclean"], "cases": [
+ {"args": ["small.txt"], "ref": "cat"},
+ {"args": ["small.txt", "big.txt", "small.txt"], "ref": "cat"},
+ {"args": ["bin.dat"], "ref": "cat"},
+ {"args": ["empty.txt"], "ref": "cat"},
+ {"args": ["nofile"], "ref": "cat"},
+ {"args": ["small.txt", "nofile", "small.txt"], "ref": "cat"},
+ {"args": ["dir"], "ref": "cat"},
+ {"args": [], "stdin": "from stdin\nline 2\n", "ref": "cat"},
+ {"args": ["-"], "stdin": "dash means stdin\n", "ref": "cat"},
+ {"args": ["small.txt", "-", "small.txt"], "stdin": "middle\n", "ref": "cat"}
+]}

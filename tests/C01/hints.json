@@ -2,55 +2,64 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "*nbr = 42;"
+   "hint": "*nbr = 42;",
+   "hint_en": "*nbr = 42;"
   }
  ],
  "ex01": [
   {
    "match": "*",
-   "hint": "ใช้ * ให้ครบ 9 ตัว: *********nbr = 42;"
+   "hint": "ใช้ * ให้ครบ 9 ตัว: *********nbr = 42;",
+   "hint_en": "Use all 9 stars: *********nbr = 42;"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "ใช้ตัวแปร tmp: tmp = *a; *a = *b; *b = tmp;"
+   "hint": "ใช้ตัวแปร tmp: tmp = *a; *a = *b; *b = tmp;",
+   "hint_en": "Use tmp: tmp = *a; *a = *b; *b = tmp;"
   }
  ],
  "ex03": [
   {
    "match": "*",
-   "hint": "*div = a / b; *mod = a % b;"
+   "hint": "*div = a / b; *mod = a % b;",
+   "hint_en": "*div = a / b; *mod = a % b;"
   }
  ],
  "ex04": [
   {
    "match": "*",
-   "hint": "ต้องเก็บ *a / *b ไว้ใน tmp ก่อน เพราะถ้าเปลี่ยน *a ก่อน การคำนวณ % จะผิด"
+   "hint": "ต้องเก็บ *a / *b ไว้ใน tmp ก่อน เพราะถ้าเปลี่ยน *a ก่อน การคำนวณ % จะผิด",
+   "hint_en": "Save *a / *b in tmp first; changing *a first breaks the %"
   }
  ],
  "ex05": [
   {
    "match": "*",
-   "hint": "วน while (str[i] != '\\0') แล้ว write ทีละตัว"
+   "hint": "วน while (str[i] != '\\0') แล้ว write ทีละตัว",
+   "hint_en": "Loop while (str[i] != '\\0') and write one char at a time"
   }
  ],
  "ex06": [
   {
    "match": "*",
-   "hint": "นับจนเจอ '\\0' แล้ว return จำนวนที่นับได้"
+   "hint": "นับจนเจอ '\\0' แล้ว return จำนวนที่นับได้",
+   "hint_en": "Count until '\\0' and return the count"
   }
  ],
  "ex07": [
   {
    "match": "*",
-   "hint": "สลับ tab[i] กับ tab[size - 1 - i] แค่ครึ่งเดียว (i < size / 2)"
+   "hint": "สลับ tab[i] กับ tab[size - 1 - i] แค่ครึ่งเดียว (i < size / 2)",
+   "hint_en": "Swap tab[i] with tab[size - 1 - i] for the first half only (i < size / 2)"
   }
  ],
  "ex08": [
   {
    "match": "*",
-   "hint": "bubble sort: ถ้า tab[i] > tab[i + 1] ให้สลับ แล้วเริ่มใหม่ จนไม่มีการสลับ"
+   "hint": "bubble sort: ถ้า tab[i] > tab[i + 1] ให้สลับ แล้วเริ่มใหม่ จนไม่มีการสลับ",
+   "hint_en": "Bubble sort: if tab[i] > tab[i + 1] swap and restart, until nothing swaps"
   }
  ]
 }

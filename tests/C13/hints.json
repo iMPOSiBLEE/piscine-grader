@@ -1,0 +1,16 @@
+{
+ "ex04": [
+  {
+   "match": "*",
+   "hint": "น้อยกว่าไปซ้าย มากกว่าหรือเท่ากันไปขวา ใช้ recursion กับ &(*root)->left/right",
+   "hint_en": "Smaller goes left, greater or equal goes right; recurse with &(*root)->left/right"
+  }
+ ],
+ "ex07": [
+  {
+   "match": "*",
+   "hint": "ทำทีละชั้น (BFS) และส่ง is_first = 1 ให้ node แรกของแต่ละชั้น",
+   "hint_en": "Go level by level (BFS) and pass is_first = 1 for the first node of each level"
+  }
+ ]
+}

@@ -1,0 +1,28 @@
+{
+ "ex04": [
+  {
+   "match": "มากไปน้อย|4, 3",
+   "hint": "เรียงจากมากไปน้อยก็นับว่าเรียงแล้ว ต้อง return 1",
+   "hint_en": "Descending order also counts as sorted: return 1"
+  }
+ ],
+ "ex05": [
+  {
+   "match": "zero",
+   "hint": "หารหรือ mod ด้วย 0 ต้องพิมพ์ข้อความ Stop : ... ตามโจทย์",
+   "hint_en": "Division or modulo by 0 prints the Stop : ... message"
+  },
+  {
+   "match": "*",
+   "hint": "ใช้ array ของ pointer ไปยังฟังก์ชัน + - / * %; operator ไม่ถูกพิมพ์ 0; argument ไม่ครบไม่พิมพ์อะไร",
+   "hint_en": "Use an array of function pointers for + - / * %; an invalid operator prints 0; wrong argument count prints nothing"
+  }
+ ],
+ "ex06": [
+  {
+   "match": "*",
+   "hint": "สลับ pointer ใน tab ไม่ต้องก๊อป string; เรียงตาม ASCII",
+   "hint_en": "Swap the pointers in tab, do not copy strings; sort in ASCII order"
+  }
+ ]
+}

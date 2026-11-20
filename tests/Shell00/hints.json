@@ -1,0 +1,37 @@
+{
+ "ex01": [
+  {
+   "match": "*",
+   "hint": "ใช้ chmod 455 และ touch -t 06012342 แล้ว tar -cf",
+   "hint_en": "Use chmod 455 and touch -t 06012342, then tar -cf"
+  }
+ ],
+ "ex02": [
+  {
+   "match": "*",
+   "hint": "test3/test5 เป็น hard link (ln), test6 เป็น symlink (ln -s) ใช้ touch -h กับ symlink",
+   "hint_en": "test3/test5 are a hard link (ln), test6 is a symlink (ln -s); use touch -h for the symlink"
+  }
+ ],
+ "ex04": [
+  {
+   "match": "*",
+   "hint": "ดู man ls: -m คั่นด้วย , / -t เรียงตามเวลา / -p ใส่ / หลังโฟลเดอร์",
+   "hint_en": "See man ls: -m comma separated, -t by time, -p adds / to folders"
+  }
+ ],
+ "ex08": [
+  {
+   "match": "*",
+   "hint": "find . -type f \\( -name '*~' -o -name '#*#' \\) -print -delete",
+   "hint_en": "find . -type f \\( -name '*~' -o -name '#*#' \\) -print -delete"
+  }
+ ],
+ "ex09": [
+  {
+   "match": "*",
+   "hint": "รูปแบบ magic: 41 string 42 ข้อความ (byte ที่ 42 คือ offset 41)",
+   "hint_en": "Magic line: 41 string 42 <description> (the 42nd byte is offset 41)"
+  }
+ ]
+}

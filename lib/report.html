@@ -10,14 +10,16 @@
   --ok:#3fb950;--okbg:rgba(63,185,80,.12);--ko:#f85149;--kobg:rgba(248,81,73,.12);
   --warn:#d29922;--accent:#58a6ff;--add:rgba(63,185,80,.16);--del:rgba(248,81,73,.14);
   --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+  --lh:21px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans Thai",Sarabun,sans-serif;display:flex;flex-direction:column}
-header{display:flex;align-items:center;gap:18px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
-.logo{font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+header{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:10px;white-space:nowrap}
 .logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#58a6ff,#a371f7);display:grid;place-items:center;font-style:normal;font-size:14px}
 .meta{color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.live{font-size:11px;font-weight:700;color:var(--ok);border:1px solid rgba(63,185,80,.4);border-radius:99px;padding:2px 8px;margin-left:8px}
 .stats{display:flex;gap:10px}
 .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-align:center;min-width:92px}
 .stat b{display:block;font-size:18px} .stat span{font-size:11px;color:var(--mute)}
@@ -37,16 +39,16 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
 .files{color:var(--mute);font-family:var(--mono);font-size:13px}
 .section{margin-top:18px}
 .section h3{font-size:12px;letter-spacing:.6px;color:var(--mute);margin:0 0 8px;text-transform:uppercase}
-.iss{display:flex;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:6px;cursor:default}
+.iss{display:flex;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);margin-bottom:6px}
 .iss.link{cursor:pointer} .iss.link:hover{border-color:var(--accent)}
 .iss .k{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--panel2);color:var(--warn);white-space:nowrap;height:fit-content}
 .iss .t{font-weight:600} .iss .w{color:var(--mute);font-size:12px;white-space:pre-wrap;font-family:var(--mono)} .iss .h{color:var(--accent);font-size:13px}
-.iss .fx{font-size:11px;color:var(--ok);margin-left:6px}
+.fx{font-size:11px;color:var(--warn);margin-left:6px;white-space:nowrap}
 .cases{display:grid;gap:6px}
 .case{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 12px}
 .case .nm{font-family:var(--mono);font-size:13px} .case.ok .nm{color:var(--mute)} .case.ko .nm{color:var(--ko)}
 .cmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
-.cmp div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all}
+.cmp div{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all;max-height:260px;overflow:auto}
 .cmp label{display:block;font:700 11px sans-serif;margin-bottom:2px} .cmp .e label{color:var(--ok)} .cmp .g label{color:var(--ko)}
 .hint{border:1px solid rgba(88,166,255,.35);background:rgba(88,166,255,.08);border-radius:10px;padding:10px 14px;margin-bottom:6px}
 .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px;width:fit-content}
@@ -58,7 +60,12 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
 .editor{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0b0f14}
 .ed-head{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;color:var(--mute)}
 .ed-head .dots i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
-.code{font-family:var(--mono);font-size:13px;line-height:1.6;overflow-x:auto}
+.ed-head .sp{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 10px;font:600 12px inherit;font-family:inherit;cursor:pointer}
+.btn:hover{border-color:var(--accent)} .btn.pri{background:#1f6feb;border-color:#1f6feb}
+.btn:disabled{opacity:.4;cursor:default}
+.saved{font-size:11px} .saved.dirty{color:var(--warn)} .saved.clean{color:var(--ok)}
+.code{font-family:var(--mono);font-size:13px;line-height:var(--lh);overflow-x:auto}
 .ln{display:flex;min-width:fit-content}
 .ln .no{width:48px;flex:none;text-align:right;padding-right:14px;color:#484f58;user-select:none}
 .ln .tx{white-space:pre;padding-right:20px;tab-size:4;-moz-tab-size:4}
@@ -66,6 +73,17 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
 .ln.add{background:var(--add)} .ln.add .no{color:var(--ok)}
 .note{margin:2px 14px 6px 62px;padding:7px 12px;border-radius:8px;font-family:-apple-system,"Noto Sans Thai",sans-serif;font-size:13px;border-left:3px solid var(--ko);background:var(--panel2)}
 .note b{color:var(--ko)} .note .h{color:var(--accent)}
+.ed-wrap{position:relative;display:flex;font-family:var(--mono);font-size:13px;line-height:var(--lh);max-height:70vh;overflow:auto}
+.gutter{flex:none;width:52px;text-align:right;padding:10px 12px 10px 0;color:#484f58;user-select:none;background:#0b0f14;position:sticky;left:0;z-index:2}
+.gutter div{height:var(--lh)} .gutter .e{color:var(--ko);font-weight:700} .gutter .e::before{content:"●";font-size:9px;margin-right:4px;vertical-align:middle}
+.layer{position:relative;flex:1;min-width:fit-content}
+.hl,.ta{margin:0;padding:10px 16px 10px 4px;white-space:pre;tab-size:4;-moz-tab-size:4;font:inherit;line-height:var(--lh);border:0}
+.hl{pointer-events:none;min-height:100%}
+.hl div{height:var(--lh)} .hl .e{background:var(--del)} .hl .cur{background:rgba(88,166,255,.07)}
+.ta{position:absolute;inset:0;width:100%;height:100%;resize:none;outline:none;background:transparent;color:transparent;caret-color:#e6edf3;overflow:hidden}
+.ta::selection{background:rgba(88,166,255,.3);color:transparent}
+.status{display:flex;gap:10px;align-items:center;padding:7px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:12.5px;min-height:34px}
+.status .msg{flex:1} .status .msg b{color:var(--ko)}
 .tok-k{color:#ff7b72} .tok-t{color:#79c0ff} .tok-s{color:#a5d6ff} .tok-c{color:#8b949e;font-style:italic} .tok-n{color:#d2a8ff} .tok-p{color:#ffa657} .tok-f{color:#d2a8ff}
 .callout{border-radius:10px;padding:10px 14px;margin:10px 0;font-size:13px}
 .callout.good{background:var(--okbg);border:1px solid rgba(63,185,80,.35)}
@@ -73,6 +91,8 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
 .callout.warn{background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.4)}
 .empty{color:var(--mute);padding:30px;text-align:center;border:1px dashed var(--line);border-radius:12px}
 .foot{color:var(--mute);font-size:12px;margin-top:26px}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:.2s;pointer-events:none}
+.toast.on{opacity:1}
 @media(max-width:760px){aside{display:none}.stats{display:none}.cmp{grid-template-columns:1fr}}
 </style>
 </head>
@@ -86,23 +106,25 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
   <aside id="side"></aside>
   <div class="content" id="content"></div>
 </main>
+<div class="toast" id="toast"></div>
 <script id="data" type="application/json">/*__DATA__*/null</script>
 <script>
 const D = JSON.parse(document.getElementById('data').textContent);
-const R = D.results;
-const K = D.kinds;
+const R = D.results, K = D.kinds, EN = D.lang === 'en', EDIT = !!D.editable;
+const T = (th, en) => EN ? en : th;
+document.documentElement.lang = EN ? 'en' : 'th';
 let cur = Math.max(0, R.findIndex(r => r.status !== 'OK'));
-let view = 0;           // 0 = โค้ดเดิม, 1 = แบบที่แก้แล้ว/คำใบ้, 2 = เฉลย
-let fileIdx = 0;
+let view = 0, fileIdx = 0;
+const ED = {};
+let checkTimer = null, busy = false;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2200);}
 
-// ---------- syntax highlight (C) ----------
-const KW = /\b(if|else|while|return|for|do|switch|case|break|continue|sizeof|typedef|struct|static|const|unsigned|signed|include|define|ifndef|endif)\b/;
-const TY = /\b(int|char|void|long|short|float|double|size_t|t_\w+)\b/;
+const KW = /^(if|else|while|return|for|do|switch|case|break|continue|sizeof|typedef|struct|static|const|unsigned|signed|include|define|ifndef|endif)$/;
+const TY = /^(int|char|void|long|short|float|double|size_t|t_\w+)$/;
 function hl(line){
-  const out=[]; let i=0;
+  const out=[]; let m, last=0;
   const rx=/(\/\*.*?\*\/|\/\*.*$|^\s*\*.*$|\/\/.*$)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(#\s*\w+)|(\b\d+\b)|([A-Za-z_]\w*)(?=\s*\()|([A-Za-z_]\w*)/g;
-  let m, last=0;
   while((m=rx.exec(line))){
     out.push(esc(line.slice(last,m.index)));
     if(m[1]) out.push(`<span class="tok-c">${esc(m[1])}</span>`);
@@ -117,26 +139,36 @@ function hl(line){
   return out.join('');
 }
 
-// ---------- line diff (LCS) เพื่อทำเครื่องหมายบรรทัดที่เปลี่ยน ----------
-function changedLines(a, b){
-  const A=a.split('\n'), B=b.split('\n'), n=A.length, m=B.length;
-  const dp=Array.from({length:n+1},()=>new Int32Array(m+1));
+function lcs(A,B){
+  const n=A.length,m=B.length,dp=Array.from({length:n+1},()=>new Int32Array(m+1));
   for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) dp[i][j]=A[i]===B[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
-  const add=new Set(); let i=0,j=0;
-  while(i<n&&j<m){ if(A[i]===B[j]){i++;j++;} else if(dp[i+1][j]>=dp[i][j+1]) i++; else {add.add(j);j++;} }
-  while(j<m){add.add(j);j++;}
+  return dp;
+}
+function changedLines(a,b){
+  const A=a.split('\n'),B=b.split('\n'),dp=lcs(A,B),add=new Set(); let i=0,j=0;
+  while(i<A.length&&j<B.length){ if(A[i]===B[j]){i++;j++;} else if(dp[i+1][j]>=dp[i][j+1]) i++; else {add.add(j);j++;} }
+  while(j<B.length){add.add(j);j++;}
   return add;
 }
+function hunks(a,b){
+  const A=a.split('\n'),B=b.split('\n'),dp=lcs(A,B),H=[]; let i=0,j=0,h=null;
+  const flush=()=>{if(h){H.push(h);h=null;}};
+  while(i<A.length||j<B.length){
+    if(i<A.length&&j<B.length&&A[i]===B[j]){flush();i++;j++;}
+    else if(j<B.length&&(i>=A.length||dp[i][j+1]>=dp[i+1][j])){ if(!h)h={a0:i,a1:i,b:[]}; h.b.push(B[j]); j++; }
+    else { if(!h)h={a0:i,a1:i,b:[]}; h.a1=i+1; i++; }
+  }
+  flush(); return H;
+}
 
-// ---------- render ----------
 function stats(){
   const pass=R.filter(r=>r.status==='OK').length;
   const first=(R.find(r=>r.status!=='OK')||{}).ex||'—';
-  document.getElementById('meta').innerHTML=`<b style="color:var(--ink)">${esc(D.proj)}</b> · ${esc(D.root)} · ${esc(D.time)}`;
+  document.getElementById('meta').innerHTML=`<b style="color:var(--ink)">${esc(D.proj)}</b> · ${esc(D.root)} · ${esc(D.time)}`+(EDIT?`<span class="live">● ${T('แก้ได้','LIVE EDIT')}</span>`:'');
   document.getElementById('stats').innerHTML=
-    `<div class="stat ${pass===R.length?'good':'bad'}"><b>${pass}/${R.length}</b><span>ข้อที่ผ่าน</span></div>`+
-    `<div class="stat"><b>${esc(D.last_ok)}</b><span>Moulinette ถึง</span></div>`+
-    `<div class="stat ${first==='—'?'good':'bad'}"><b>${esc(first)}</b><span>ข้อแรกที่พัง</span></div>`;
+    `<div class="stat ${pass===R.length?'good':'bad'}"><b>${pass}/${R.length}</b><span>${T('ข้อที่ผ่าน','passed')}</span></div>`+
+    `<div class="stat"><b>${esc(D.last_ok)}</b><span>${T('Moulinette ถึง','Moulinette')}</span></div>`+
+    `<div class="stat ${first==='—'?'good':'bad'}"><b>${esc(first)}</b><span>${T('ข้อแรกที่พัง','first failure')}</span></div>`;
 }
 function side(){
   document.getElementById('side').innerHTML=R.map((r,i)=>{
@@ -147,20 +179,18 @@ function side(){
 function sel(i){cur=i;view=0;fileIdx=0;side();render();document.getElementById('content').scrollTop=0;}
 function available(r){
   const hasFix = r.fixed && Object.keys(r.fixed).length;
-  const hasLogic = r.issues.some(x=>x.kind==='logic'||x.kind==='crash') || (r.after_fix && r.after_fix.tests===false);
   const hasSol = r.solution && Object.keys(r.solution).length;
-  return {fix: hasFix || r.hints.length, sol: hasSol && (hasLogic || r.status!=='OK')};
+  return {fix: hasFix || r.hints.length || (r.renames||[]).length, sol: hasSol && r.status!=='OK'};
 }
 function cycle(){
-  const r=R[cur], a=available(r);
-  const order=[0]; if(a.fix) order.push(1); if(a.sol) order.push(2);
+  const a=available(R[cur]), order=[0]; if(a.fix) order.push(1); if(a.sol) order.push(2);
   view=order[(order.indexOf(view)+1)%order.length]; render();
 }
 function setView(v){view=v;render();}
+const kindTag=x=>{const k=K[x.kind]||['',''];return `<span class="k">${k[0]} ${esc(k[1])}</span>`;};
 
 function codeBlock(fname, text, notes, added){
-  const lines=text.replace(/\n$/,'').split('\n');
-  const byLine={};
+  const lines=text.replace(/\n$/,'').split('\n'), byLine={};
   (notes||[]).forEach(n=>{ if(n.line) (byLine[n.line]=byLine[n.line]||[]).push(n); });
   let h='';
   lines.forEach((l,i)=>{
@@ -174,81 +204,178 @@ function codeBlock(fname, text, notes, added){
   return `<div class="editor"><div class="ed-head"><span class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>${esc(fname)}</div><div class="code">${h}</div></div>`;
 }
 
-function render(){
-  const r=R[cur], ok=r.status==='OK', a=available(r);
-  let h=`<div class="title"><h2>${r.ex}</h2><span class="badge ${ok?'ok':'ko'}">${ok?'ผ่าน':'ไม่ผ่าน · '+esc(r.status)}</span><span class="files">${esc(r.files.join(', '))}</span></div>`;
+function edKey(r,fn){return r.ex+'/'+fn;}
+function edState(r,fn){
+  const k=edKey(r,fn);
+  if(!ED[k]) ED[k]={text:r.sources[fn]||'', saved:r.sources[fn]||''};
+  return ED[k];
+}
+function editorBlock(r,fn){
+  const st=edState(r,fn), dirty=st.text!==st.saved, fixable=r.fixed&&r.fixed[fn]&&r.fixed[fn]!==st.text;
+  return `<div class="editor" id="ed">
+    <div class="ed-head"><span class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>${esc(fn)}
+      <span class="saved ${dirty?'dirty':'clean'}" id="savedTag"></span><span class="sp"></span>
+      <button class="btn" id="fixAll" ${fixable?'':'disabled'} onclick="fixAll()">⚡ ${T('แก้ทั้งไฟล์','Fix whole file')}</button>
+      <button class="btn pri" onclick="save()">💾 ${T('บันทึก + ตรวจ','Save + check')} <span class="kbd" style="color:#cfe1ff;border-color:#5b8de8">Ctrl+S</span></button>
+    </div>
+    <div class="ed-wrap" id="edwrap"><div class="gutter" id="gut"></div><div class="layer"><pre class="hl" id="hl"></pre><textarea class="ta" id="ta" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea></div></div>
+    <div class="status"><span class="msg" id="smsg"></span><span class="kbd">Tab</span><span style="color:var(--mute);font-size:12px">${T('บนบรรทัดแดง = แก้จุดนั้น','on a red line = fix it')}</span></div>
+  </div>`;
+}
+function issuesFor(r,fn){return r.issues.filter(x=>x.line&&(!x.file||x.file===fn));}
+function curFile(){const r=R[cur];const f=Object.keys(r.sources);return f[Math.min(fileIdx,f.length-1)];}
+function decorate(){
+  const r=R[cur], fn=curFile(), ta=document.getElementById('ta'); if(!ta) return;
+  const text=ta.value, lines=text.split('\n'), iss=issuesFor(r,fn), bad={};
+  iss.forEach(x=>{(bad[x.line]=bad[x.line]||[]).push(x);});
+  const caret=text.slice(0,ta.selectionStart).split('\n').length;
+  document.getElementById('hl').innerHTML=lines.map((l,i)=>`<div class="${bad[i+1]?'e':''} ${i+1===caret?'cur':''}">${hl(l)||' '}</div>`).join('');
+  document.getElementById('gut').innerHTML=lines.map((_,i)=>`<div class="${bad[i+1]?'e':''}">${i+1}</div>`).join('');
+  const here=bad[caret]||[];
+  document.getElementById('smsg').innerHTML=here.length?here.slice(0,2).map(x=>`${(K[x.kind]||[''])[0]} <b>${T('บรรทัด','line')} ${x.line}</b> ${esc(x.title)}${x.hint?` <span style="color:var(--accent)">→ ${esc(x.hint)}</span>`:''}${x.fixable?`<span class="fx">⚡ Tab</span>`:''}`).join(' · '):
+    `<span style="color:var(--mute)">${iss.length?T(`มี ${iss.length} จุดในไฟล์นี้ · เลื่อนไปบรรทัดแดงเพื่อดูรายละเอียด`,`${iss.length} problems in this file · move to a red line for details`):T('✓ ไม่มีจุดผิดในไฟล์นี้','✓ no problems in this file')}</span>`;
+  ta.style.height=(lines.length*21+20)+'px';
+  const st=edState(r,fn), tag=document.getElementById('savedTag'), dirty=st.text!==st.saved;
+  tag.className='saved '+(dirty?'dirty':'clean'); tag.textContent=dirty?T('● ยังไม่บันทึก','● unsaved'):T('✓ บันทึกแล้ว','✓ saved');
+  const fb=document.getElementById('fixAll'); if(fb) fb.disabled=!(r.fixed&&r.fixed[fn]&&r.fixed[fn]!==text);
+}
+function setText(ta,text,caretLine){
+  edState(R[cur],curFile()).text=text; ta.value=text;
+  if(caretLine){const pos=text.split('\n').slice(0,caretLine-1).join('\n').length+(caretLine>1?1:0); ta.selectionStart=ta.selectionEnd=pos;}
+  decorate(); scheduleCheck();
+}
+function onTab(e){
+  const ta=e.target, r=R[cur], fn=curFile(), fixed=r.fixed&&r.fixed[fn];
+  const caret=ta.value.slice(0,ta.selectionStart).split('\n').length;
+  const lineIss=issuesFor(r,fn).filter(x=>x.line===caret&&x.fixable);
+  if(fixed && lineIss.length && !e.shiftKey){
+    const H=hunks(ta.value,fixed), k=caret-1;
+    let h=H.find(h=>h.a0<=k&&k<h.a1) || H.find(h=>h.a0===h.a1&&Math.abs(h.a0-k)<=1);
+    if(!h && caret===1) h=H[0];
+    if(h){
+      const A=ta.value.split('\n'); A.splice(h.a0,h.a1-h.a0,...h.b);
+      setText(ta,A.join('\n'),h.a0+1); toast('⚡ '+T('แก้จุดนี้แล้ว (Ctrl+Z ย้อนกลับ)','Fixed this spot (Ctrl+Z to undo)')); return;
+    }
+  }
+  const s=ta.selectionStart, en=ta.selectionEnd;
+  ta.setRangeText('\t',s,en,'end'); edState(r,fn).text=ta.value; decorate(); scheduleCheck();
+}
+function fixAll(){
+  const r=R[cur], fn=curFile(), ta=document.getElementById('ta');
+  if(ta&&r.fixed&&r.fixed[fn]){ setText(ta,r.fixed[fn],1); ta.focus(); toast('⚡ '+T('แก้ทั้งไฟล์แล้ว · Ctrl+S เพื่อบันทึก','Whole file fixed · Ctrl+S to save')); }
+}
+function scheduleCheck(){ if(!EDIT) return; clearTimeout(checkTimer); checkTimer=setTimeout(()=>api('/api/check'),900); }
+async function api(path){
+  const r=R[cur], fn=curFile(), ta=document.getElementById('ta'); if(!ta) return;
+  if(busy&&path==='/api/check'){scheduleCheck();return;}
+  const text=ta.value; busy=true;
+  try{
+    const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ex:r.ex,file:fn,text})});
+    const j=await res.json(); if(j.error){toast('⚠ '+esc(j.error));return;}
+    Object.assign(r,j.result);
+    if(path==='/api/save'){ edState(r,fn).saved=text; D.last_ok=j.summary[2]; stats(); side();
+      toast(r.status==='OK'?'✅ '+T('บันทึกแล้ว · ข้อนี้ผ่าน!','Saved · this exercise passes!'):'💾 '+T('บันทึกแล้ว · ','Saved · ')+esc(r.status)); }
+    if(ta.value===text){ renderInfo(); decorate(); }
+  }catch(e){toast('⚠ '+T('ติดต่อตัวตรวจไม่ได้ (ปิด Terminal ไปหรือยัง?)','Cannot reach the grader (is the terminal still open?)'));}
+  finally{busy=false;}
+}
+function save(){clearTimeout(checkTimer);api('/api/save');}
 
-  // ปัญหาที่ไม่ผูกกับบรรทัด
+function infoHTML(r){
+  let h='';
+  const ok=r.status==='OK';
+  h+=`<div class="title"><h2>${r.ex}</h2><span class="badge ${ok?'ok':'ko'}">${ok?T('ผ่าน','OK'):T('ไม่ผ่าน · ','failed · ')+esc(r.status)}</span><span class="files">${esc(r.files.join(', '))}</span></div>`;
   const loose=r.issues.filter(x=>!x.line && x.kind!=='logic');
-  if(loose.length){
-    h+=`<div class="section"><h3>ปัญหา</h3>`+loose.map(x=>{const k=K[x.kind];return `<div class="iss"><span class="k">${k[0]} ${k[1]}</span><div><div class="t">${esc(x.title)}${x.fixable?'<span class="fx">● แก้อัตโนมัติได้</span>':''}</div>${x.why?`<div class="w">${esc(x.why)}</div>`:''}${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`}).join('')+`</div>`;
-  }
+  if(loose.length) h+=`<div class="section"><h3>${T('ปัญหา','Problems')}</h3>`+loose.map(x=>`<div class="iss">${kindTag(x)}<div><div class="t">${esc(x.title)}${x.fixable?`<span class="fx">⚡ ${T('แก้อัตโนมัติได้','auto-fixable')}</span>`:''}</div>${x.why?`<div class="w">${esc(x.why)}</div>`:''}${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
   const lined=r.issues.filter(x=>x.line);
-  if(lined.length){
-    h+=`<div class="section"><h3>จุดที่ผิดในโค้ด (${lined.length})</h3>`+lined.slice(0,40).map(x=>{const k=K[x.kind];return `<div class="iss link" onclick="jump(${x.line},'${esc(x.file||'')}')"><span class="k">${k[0]} ${k[1]}</span><div><div class="t">บรรทัด ${x.line}: ${esc(x.title)}${x.fixable?'<span class="fx">● แก้อัตโนมัติได้</span>':''}</div>${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`}).join('')+`</div>`;
-  }
-  // เคสทดสอบ
+  if(lined.length) h+=`<div class="section"><h3>${T('จุดที่ผิดในโค้ด','Problems in the code')} (${lined.length})</h3>`+lined.slice(0,40).map(x=>`<div class="iss link" onclick="jump(${x.line},'${esc(x.file||'')}')">${kindTag(x)}<div><div class="t">${T('บรรทัด','line')} ${x.line}: ${esc(x.title)}${x.fixable?`<span class="fx">⚡ ${T('แก้อัตโนมัติได้','auto-fixable')}</span>`:''}</div>${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
   if(r.cases.length){
     const bad=r.cases.filter(c=>!c.ok), good=r.cases.filter(c=>c.ok);
-    h+=`<div class="section"><h3>ผลทดสอบ ${good.length}/${r.cases.length}</h3><div class="cases">`+
-      bad.map(c=>`<div class="case ko"><div class="nm">✕ ${esc(c.name)}</div><div class="cmp"><div class="e"><label>ควรได้</label>${esc(c.exp)}</div><div class="g"><label>ได้จริง</label>${esc(c.got)}</div></div></div>`).join('')+
-      (good.length?`<details><summary style="cursor:pointer;color:var(--mute);font-size:13px;margin-top:4px">ดูเคสที่ผ่าน (${good.length})</summary>`+good.map(c=>`<div class="case ok"><div class="nm">✓ ${esc(c.name)}</div></div>`).join('')+`</details>`:'')+
-      `</div></div>`;
+    h+=`<div class="section"><h3>${T('ผลทดสอบ','Tests')} ${good.length}/${r.cases.length}</h3><div class="cases">`+
+      bad.map(c=>`<div class="case ko"><div class="nm">✕ ${esc(c.name)}</div><div class="cmp"><div class="e"><label>${T('ควรได้','expected')}</label>${esc(c.exp)}</div><div class="g"><label>${T('ได้จริง','got')}</label>${esc(c.got)}</div></div></div>`).join('')+
+      (good.length?`<details><summary style="cursor:pointer;color:var(--mute);font-size:13px;margin-top:4px">${T('ดูเคสที่ผ่าน','passing cases')} (${good.length})</summary>`+good.map(c=>`<div class="case ok"><div class="nm">✓ ${esc(c.name)}</div></div>`).join('')+`</details>`:'')+`</div></div>`;
   }
+  if(r.hints.length && view===0) h+=`<div class="section">`+r.hints.slice(0,2).map(t=>`<div class="hint">💡 ${esc(t)}</div>`).join('')+`</div>`;
+  return h;
+}
+function renderInfo(){const el=document.getElementById('info'); if(el) el.innerHTML=infoHTML(R[cur]);}
 
-  // ส่วนโค้ด + Tab
+function render(){
+  const r=R[cur], ok=r.status==='OK', a=available(r);
+  let h=`<div id="info">${infoHTML(r)}</div>`;
   const files=Object.keys(r.sources).length?Object.keys(r.sources):Object.keys(r.solution||{});
   if(files.length){
     if(fileIdx>=files.length) fileIdx=0;
     const fn=files[fileIdx];
-    h+=`<div class="section"><h3>โค้ด</h3><div class="bar"><div class="tabs">
-      <button class="${view===0?'on':''}" onclick="setView(0)">โค้ดเดิม</button>
-      <button class="${view===1?'on':''}" ${a.fix?'':'disabled'} onclick="setView(1)">${r.fixed&&Object.keys(r.fixed).length?'แบบที่แก้แล้ว':'คำใบ้'}</button>
-      <button class="${view===2?'on':''}" ${a.sol?'':'disabled'} onclick="setView(2)">เฉลย</button>
-    </div><span class="kbd">Tab</span><span style="color:var(--mute);font-size:12px">สลับมุมมอง · <span class="kbd">↑</span><span class="kbd">↓</span> เปลี่ยนข้อ</span>
-    ${files.length>1?files.map((f,i)=>`<button onclick="fileIdx=${i};render()" style="background:${i===fileIdx?'var(--panel2)':'none'};border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--mono);font-size:12px">${esc(f)}</button>`).join(''):''}</div>`;
-    const src=r.sources[fn]||'';
+    h+=`<div class="section"><h3>${T('โค้ด','Code')}</h3><div class="bar"><div class="tabs">
+      <button class="${view===0?'on':''}" onclick="setView(0)">${EDIT&&r.sources[fn]!==undefined?T('✏️ แก้โค้ด','✏️ Edit'):T('โค้ดเดิม','Original')}</button>
+      <button class="${view===1?'on':''}" ${a.fix?'':'disabled'} onclick="setView(1)">${r.fixed&&Object.keys(r.fixed).length?T('แบบที่แก้แล้ว','Fixed version'):T('คำใบ้','Hint')}</button>
+      <button class="${view===2?'on':''}" ${a.sol?'':'disabled'} onclick="setView(2)">${T('เฉลย','Solution')}</button>
+    </div>${EDIT?'':`<span class="kbd">Tab</span><span style="color:var(--mute);font-size:12px">${T('สลับมุมมอง','switch view')}</span>`}<span class="kbd">↑</span><span class="kbd">↓</span><span style="color:var(--mute);font-size:12px">${T('เปลี่ยนข้อ','change exercise')}</span>
+    ${files.length>1?files.map((f,i)=>`<button class="btn" onclick="fileIdx=${i};render()" style="${i===fileIdx?'border-color:var(--accent)':''}">${esc(f)}</button>`).join(''):''}</div>`;
+    const src=r.sources[fn];
     if(view===0){
-      if(src) h+=codeBlock(fn, src, r.issues.filter(x=>x.line && (!x.file || x.file===fn)), null);
-      else h+=`<div class="empty">ไม่มีไฟล์ ${esc(fn)} — กด Tab เพื่อดูเฉลย</div>`;
+      if(src===undefined) h+=`<div class="empty">${T('ไม่มีไฟล์','Missing file')} ${esc(fn)} — ${T('ดูเฉลยได้ที่ปุ่ม เฉลย','see the Solution tab')}</div>`;
+      else if(EDIT) h+=editorBlock(r,fn);
+      else h+=codeBlock(fn, src, r.issues.filter(x=>x.line && (!x.file || x.file===fn)), null);
     } else if(view===1){
       if(r.hints.length) h+=r.hints.map(t=>`<div class="hint">💡 ${esc(t)}</div>`).join('');
-      (r.renames||[]).forEach(([a,b])=>{h+=`<div class="callout good">📁 เปลี่ยนชื่อ <b>${esc(a)}</b> → <b>${esc(b)}</b></div>`;});
-      (r.deletes||[]).forEach(d=>{h+=`<div class="callout good">🗑 ลบไฟล์เกิน <b>${esc(d)}</b></div>`;});
+      (r.renames||[]).forEach(([x,y])=>{h+=`<div class="callout good">📁 ${T('เปลี่ยนชื่อ','rename')} <b>${esc(x)}</b> → <b>${esc(y)}</b></div>`;});
+      (r.deletes||[]).forEach(d=>{h+=`<div class="callout good">🗑 ${T('ลบไฟล์เกิน','delete extra file')} <b>${esc(d)}</b></div>`;});
       if(r.fixed && r.fixed[fn]){
         const af=r.after_fix||{};
-        const st=[af.norm===true?'✅ norm ผ่าน':af.norm===false?'⚠️ norm ยังเหลือ: '+esc((af.norm_left||[]).join(' · ')):'',
-                  af.compile?'✅ คอมไพล์ผ่าน':'⚠️ คอมไพล์ยังไม่ผ่าน', af.tests?'✅ เทสต์ผ่านหมด':'⚠️ เทสต์ยังไม่ผ่าน → ต้องแก้ logic เอง (กด Tab อีกทีดูเฉลย)'].filter(Boolean).join('<br>');
-        h+=`<div class="callout ${af.tests?'good':'warn'}"><b>หลังแก้อัตโนมัติ:</b><br>${st}</div>`;
-        h+=codeBlock(fn+'  (แก้แล้ว — บรรทัดสีเขียวคือที่เปลี่ยน)', r.fixed[fn], [], changedLines(src, r.fixed[fn]));
-      } else if(!r.hints.length){
-        h+=`<div class="empty">ไม่มีอะไรต้องแก้อัตโนมัติ</div>`;
-      } else {
-        h+=`<div class="callout info">ลองแก้เองตามคำใบ้ก่อน ถ้ายังไม่ได้กด <span class="kbd">Tab</span> อีกครั้งเพื่อดูเฉลย</div>`;
-      }
+        const st=[af.norm===true?'✅ norm':af.norm===false?'⚠️ norm: '+esc((af.norm_left||[]).join(' · ')):'',
+                  af.compile?'✅ '+T('คอมไพล์ผ่าน','compiles'):'⚠️ '+T('คอมไพล์ยังไม่ผ่าน','still does not compile'),
+                  af.tests?'✅ '+T('เทสต์ผ่านหมด','all tests pass'):'⚠️ '+T('เทสต์ยังไม่ผ่าน → ต้องแก้ logic เอง (ดูเฉลยได้)','tests still fail → fix the logic yourself (see Solution)')].filter(Boolean).join('<br>');
+        h+=`<div class="callout ${af.tests?'good':'warn'}"><b>${T('หลังแก้อัตโนมัติ','After auto-fix')}:</b><br>${st}</div>`;
+        h+=codeBlock(fn+T('  (แก้แล้ว — บรรทัดสีเขียวคือที่เปลี่ยน)','  (fixed — green lines changed)'), r.fixed[fn], [], changedLines(src||'', r.fixed[fn]));
+        if(EDIT) h+=`<p><button class="btn pri" onclick="view=0;render();setTimeout(fixAll,50)">⚡ ${T('ใช้แบบนี้ในตัวแก้ไข','Use this in the editor')}</button></p>`;
+      } else if(!r.hints.length && !(r.renames||[]).length) h+=`<div class="empty">${T('ไม่มีอะไรต้องแก้อัตโนมัติ','Nothing to auto-fix')}</div>`;
+      else if(r.hints.length) h+=`<div class="callout info">${T('ลองแก้เองตามคำใบ้ก่อน ถ้ายังไม่ได้ค่อยดูเฉลย','Try the hint first; open the solution only if you are stuck')}</div>`;
     } else {
       const sol=(r.solution||{})[fn];
-      h+=`<div class="callout info">📘 ตัวอย่างโค้ดที่ถูก (ไม่รวม header) ใช้เทียบว่าต่างจากของเดิมตรงไหน แล้วลองเขียนเองอีกรอบ</div>`;
-      h+= sol ? codeBlock(fn+'  (เฉลย)', sol, [], src?changedLines(src.split('\n').slice(has42(src)?12:0).join('\n'), sol):null) : `<div class="empty">ไม่มีเฉลยสำหรับไฟล์นี้</div>`;
+      h+=`<div class="callout info">📘 ${T('ตัวอย่างโค้ดที่ถูก (ไม่รวม header) ใช้เทียบว่าต่างจากของเดิมตรงไหน แล้วลองเขียนเองอีกรอบ','A correct example (without header). Compare it with yours, then try writing it again yourself')}</div>`;
+      h+= sol ? codeBlock(fn+T('  (เฉลย)','  (solution)'), sol, [], src?changedLines(src.split('\n').slice(has42(src)?12:0).join('\n'), sol):null) : `<div class="empty">${T('ไม่มีเฉลยสำหรับไฟล์นี้','No solution for this file')}</div>`;
     }
     h+=`</div>`;
   }
-  if(ok && !r.issues.length) h+=`<div class="callout good">✔ ข้อนี้ผ่านทุกอย่าง เก่งมาก!</div>`;
-  h+=`<p class="foot">ตัวตรวจช่วยดูผลเท่านั้น ตอน evaluate ยังต้องอ่านโค้ดกับเพื่อน และให้เขาอธิบายตามใบประเมิน</p>`;
+  if(ok && !r.issues.length) h+=`<div class="callout good">✔ ${T('ข้อนี้ผ่านทุกอย่าง เก่งมาก!','Everything passes. Nice work!')}</div>`;
+  h+=`<p class="foot">${T('ตัวตรวจช่วยดูผลเท่านั้น ตอน evaluate ยังต้องอ่านโค้ดกับเพื่อน และให้เขาอธิบายตามใบประเมิน','The grader only helps: during an evaluation read the code with your peer and let them explain it')}</p>`;
   document.getElementById('content').innerHTML=h;
+  const ta=document.getElementById('ta');
+  if(ta){
+    ta.value=edState(r,files[fileIdx]).text; decorate();
+    ta.addEventListener('input',()=>{edState(R[cur],curFile()).text=ta.value; decorate(); scheduleCheck();});
+    ta.addEventListener('keydown',e=>{
+      if(e.key==='Tab'){e.preventDefault();e.stopPropagation();onTab(e);}
+      else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save();}
+      else if(e.key==='Enter'){
+        e.preventDefault(); const s=ta.selectionStart, line=ta.value.slice(0,s).split('\n').pop();
+        let ind=(line.match(/^\t*/)||[''])[0]; if(/\{\s*$/.test(line)) ind+='\t';
+        ta.setRangeText('\n'+ind,s,ta.selectionEnd,'end'); edState(R[cur],curFile()).text=ta.value; decorate(); scheduleCheck();
+      }
+    });
+    ['click','keyup'].forEach(ev=>ta.addEventListener(ev,decorate));
+  }
 }
 function has42(t){return /By:/.test(t.split('\n').slice(0,12).join('\n'));}
 function jump(line,file){
-  const r=R[cur]; const files=Object.keys(r.sources);
+  const r=R[cur], files=Object.keys(r.sources);
   if(file&&files.includes(file)) fileIdx=files.indexOf(file);
   view=0; render();
+  const ta=document.getElementById('ta');
+  if(ta){ const pos=ta.value.split('\n').slice(0,line-1).join('\n').length+(line>1?1:0); ta.focus(); ta.selectionStart=ta.selectionEnd=pos; decorate();
+    document.getElementById('edwrap').scrollTop=Math.max(0,(line-5)*21); return; }
   const el=document.getElementById('L'+line); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});
 }
 document.addEventListener('keydown',e=>{
+  if(EDIT&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();if(e.target.tagName!=='TEXTAREA')save();return;}
+  if(e.target.tagName==='TEXTAREA') return;
   if(e.key==='Tab'){e.preventDefault();cycle();}
   else if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();sel(Math.min(R.length-1,cur+1));}
   else if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();sel(Math.max(0,cur-1));}
 });
+window.addEventListener('beforeunload',e=>{ if(Object.values(ED).some(s=>s.text!==s.saved)){e.preventDefault();e.returnValue='';} });
 (function(){const m=location.hash.match(/#(ex\d+)(?:\/(\d))?/); if(m){const i=R.findIndex(r=>r.ex===m[1]); if(i>=0)cur=i; if(m[2])view=+m[2];}})();
 stats(); side(); render();
 </script>

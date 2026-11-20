@@ -2,25 +2,29 @@
  "ex00": [
   {
    "match": "*",
-   "hint": "พิมพ์ argv[0] ตามด้วย \\n"
+   "hint": "พิมพ์ argv[0] ตามด้วย \\n",
+   "hint_en": "Print argv[0] then \\n"
   }
  ],
  "ex01": [
   {
    "match": "*",
-   "hint": "พิมพ์ argv[1] ถึง argv[argc-1] บรรทัดละตัว"
+   "hint": "พิมพ์ argv[1] ถึง argv[argc-1] บรรทัดละตัว",
+   "hint_en": "Print argv[1] to argv[argc-1], one per line"
   }
  ],
  "ex02": [
   {
    "match": "*",
-   "hint": "พิมพ์จาก argv[argc-1] ถอยลงมาถึง argv[1]"
+   "hint": "พิมพ์จาก argv[argc-1] ถอยลงมาถึง argv[1]",
+   "hint_en": "Print from argv[argc-1] down to argv[1]"
   }
  ],
  "ex03": [
   {
    "match": "*",
-   "hint": "เรียงตาม ASCII ด้วย ft_strcmp (ตัวใหญ่มาก่อนตัวเล็ก) แล้วพิมพ์บรรทัดละตัว"
+   "hint": "เรียงตาม ASCII ด้วย ft_strcmp (ตัวใหญ่มาก่อนตัวเล็ก) แล้วพิมพ์บรรทัดละตัว",
+   "hint_en": "Sort in ASCII order with ft_strcmp (uppercase first), one per line"
   }
  ]
 }
