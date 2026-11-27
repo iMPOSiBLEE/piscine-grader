@@ -58,9 +58,28 @@ def save_config(**kw):
 LANG = os.environ.get("GRADER_LANG") or load_config().get("lang", "th")
 
 
+class Bi(str):
+    """ข้อความที่จำได้ทั้งสองภาษา: ใช้เหมือน str ตามภาษาที่เลือก แต่ดึง .th / .en ได้เสมอ
+    """
+    th = en = ""
+
+    def __new__(cls, th, en):
+        s = super().__new__(cls, en if LANG == "en" else th)
+        s.th, s.en = th, en
+        return s
+
+
 def L(th, en):
     """ข้อความตามภาษาที่เลือก"""
-    return en if LANG == "en" else th
+    return Bi(th, en)
+
+
+def th_of(s):
+    return getattr(s, "th", s) or ""
+
+
+def en_of(s):
+    return getattr(s, "en", s) or ""
 
 
 def c(code, s):
@@ -82,7 +101,9 @@ KIND = {
     "compile": ("🔧", L("คอมไพล์", "Compile")),
     "logic": ("🧠", L("ผลลัพธ์", "Output")),
     "crash": ("💥", L("พัง/ค้าง", "Crash/Hang")),
+    "tip": ("💡", L("แนะนำ", "Tip")),     # ไม่ทำให้ตก
 }
+FAIL_KINDS = ("file", "rule", "norm")
 
 
 # ───────────────────────── projects ─────────────────────────
@@ -173,9 +194,22 @@ def close_match(name, candidates, cutoff=0.7):
     return low.get(name.lower())
 
 
-def issue(kind, title, why="", hint="", file=None, line=None, fixable=False):
-    return {"kind": kind, "title": title, "why": why, "hint": hint, "file": file, "line": line,
-            "fixable": fixable}
+def issue(kind, title, why="", hint="", file=None, line=None, fixable=False, code=None):
+    """title/hint เป็น Bi ได้ → เก็บไว้ทั้งไทยและอังกฤษ"""
+    return {"kind": kind, "title": str(title), "why": str(why), "hint": str(hint), "file": file, "line": line,
+            "fixable": fixable, "code": code,
+            "title_th": th_of(title), "title_en": en_of(title), "hint_th": th_of(hint), "hint_en": en_of(hint),
+            "why_en": en_of(why)}
+
+
+def strip_thai(text):
+    """ตัดคำไทยออกจากชื่อเคส เหลือส่วนโค้ด (ใช้ตอนเขียนภาษาอังกฤษ)"""
+    if not text or not re.search("[฀-๿]", text):
+        return text
+    t = re.sub(r"[฀-๿]+(?:[ ]+[฀-๿0-9]+)*", "", text)
+    t = re.sub(r"\(\s*[,.]?\s*\)", "", t)
+    t = re.sub(r"\s{2,}", " ", t).strip(" ,.-:")
+    return t if re.search(r"[A-Za-z0-9]", t) else "check"
 
 
 # ───────────────────────── 42 header ─────────────────────────
@@ -296,7 +330,14 @@ def fix_remove_main(text):
     return "\n".join(lines)
 
 
+def needs_header(fname):
+    """Norm บังคับ 42 header แค่ไฟล์ .c และ .h (norminette ก็ตรวจแค่ 2 ชนิดนี้)"""
+    return fname.endswith((".c", ".h"))
+
+
 def fix_header(text, fname):
+    if not needs_header(fname):
+        return text          # .sh / Makefile: ไม่บังคับ และห้ามดัน #!/bin/sh ลงจากบรรทัดแรก
     login, mail = whoami()
     if text.startswith("/* ****") or text.startswith("# ****"):
         lines = text.split("\n")[11:]
@@ -547,7 +588,7 @@ def parse_norm(out, fname):
         title = th[0] if th else msg.strip()
         hint = th[1] if th else ""
         issues.append(issue("norm", title, why=f"{code}: {msg.strip()}", hint=hint, file=fname, line=ln,
-                            fixable=bool(th and th[2])))
+                            fixable=bool(th and th[2]), code=code))
     return issues
 
 
@@ -621,9 +662,9 @@ def parse_cc(out, fname):
                 fixable = False
         q = re.search(r"'(\w+)'", msg)
         if q and kind not in ("semicolon", "comma") and q.group(1) not in title:
-            title = f"{title} → '{q.group(1)}'"
+            title = L(f"{th_of(title)} → '{q.group(1)}'", f"{en_of(title)} → '{q.group(1)}'")
         issues.append(issue("compile", title, why=msg, hint=hint, file=os.path.basename(fname), line=ln,
-                            fixable=fixable))
+                            fixable=fixable, code="cc"))
         if fixable:
             fixes.append((kind, ln, col, name))
     return issues, fixes
@@ -668,7 +709,7 @@ def guess_hints(proj, ex, cases, status):
         pat = h.get("match", "*")
         if pat == "*" or any(re.search(pat, cs["name"] + " " + cs.get("exp", "") + " " + cs.get("got", ""), re.I)
                              for cs in bad):
-            hints.append(h.get("hint_en", h["hint"]) if LANG == "en" else h["hint"])
+            hints.append(L(h["hint"], h.get("hint_en", h["hint"])))
     for cs in bad:
         e, g = cs.get("exp", ""), cs.get("got", "")
         if g in ('""', "") and e not in ('""', ""):
@@ -690,12 +731,7 @@ def guess_hints(proj, ex, cases, status):
 
 def en_case(text):
     """โหมดอังกฤษ: ตัดคำอธิบายภาษาไทยในชื่อเคสออก เหลือส่วนโค้ด"""
-    if LANG != "en" or not text or not re.search("[\u0e00-\u0e7f]", text):
-        return text
-    t = re.sub(r"[\u0e00-\u0e7f]+(?:[ ]+[\u0e00-\u0e7f0-9]+)*", "", text)
-    t = re.sub(r"\(\s*[,.]?\s*\)", "", t)
-    t = re.sub(r"\s{2,}", " ", t).strip(" ,.-:")
-    return t if re.search(r"[A-Za-z0-9]", t) else "check"
+    return strip_thai(text) if LANG == "en" else text
 
 
 def parse_cases(out):
@@ -830,6 +866,54 @@ def run_prog_case(binary, cs, cwd):
 
 
 # ───────────────────────── one exercise ─────────────────────────
+# ───────────────────────── git / files ─────────────────────────
+def git_info(root):
+    """ข้อมูล git ของโฟลเดอร์งาน: ไฟล์ที่ commit แล้ว / แก้ค้าง / commit ที่ยังไม่ push  (None ถ้าไม่ใช่ git)"""
+    code, _ = run(["git", "-C", root, "rev-parse", "--show-toplevel"])
+    if code != 0:
+        return None
+    # -z: ชื่อไฟล์แปลก ๆ (เช่น Shell01 ex05) ไม่ถูก git ใส่เครื่องหมายคำพูด
+    code, out = run(["git", "-C", root, "ls-tree", "-r", "-z", "--name-only", "HEAD"])
+    committed = set(out.split("\0")) - {""} if code == 0 else set()
+    _, out = run(["git", "-C", root, "diff", "-z", "--name-only", "--relative", "HEAD"])
+    modified = set(out.split("\0")) - {""} if code == 0 else set()
+    code, out = run(["git", "-C", root, "rev-list", "--count", "@{u}..HEAD"])
+    ahead = int(out.strip()) if code == 0 and out.strip().isdigit() else None
+    code, out = run(["git", "-C", root, "rev-parse", "--abbrev-ref", "@{u}"])
+    upstream = out.strip() if code == 0 else None
+    return {"committed": committed, "modified": modified, "ahead": ahead, "upstream": upstream}
+
+
+def extra_type(name, full):
+    if os.path.isdir(full):
+        return "dir"
+    if name.endswith((".o", ".a", ".gch", ".so", ".out")) or name in ("a.out",):
+        return "build"
+    if name.endswith((".swp", ".swo", "~", ".bak", ".orig", ".tmp")):
+        return "temp"
+    if name.startswith("."):
+        return "hidden"
+    return "other"
+
+
+def rm_command(rel, extras):
+    """คำสั่งลบไฟล์เกินออกจาก git (รวม *.o ถ้ามีหลายไฟล์)"""
+    parts, exts = [], {}
+    for e in extras:
+        ext = os.path.splitext(e["name"])[1]
+        if e["type"] == "build" and ext:
+            exts.setdefault(ext, []).append(e["name"])
+    for e in extras:
+        ext = os.path.splitext(e["name"])[1]
+        if e["type"] == "build" and ext and len(exts.get(ext, [])) > 1:
+            g = f"'{rel}/*{ext}'"
+            if g not in parts:
+                parts.append(g)
+        else:
+            parts.append(f"{rel}/{e['name']}" + ("/" if e["type"] == "dir" else ""))
+    return f"git rm -r {' '.join(parts)} && git commit -m \"remove extra files\" && git push"
+
+
 class Grader:
     def __init__(self, proj, root, mine=False):
         self.proj = proj
@@ -838,6 +922,31 @@ class Grader:
         self.tests = os.path.join(TESTS, proj)
         self.work = tempfile.mkdtemp(prefix="grader_")
         self.has_norm = have("norminette")
+        self.git = git_info(root)
+
+    def _git_state(self, rel, fn):
+        """ok | modified (แก้แล้วยังไม่ commit) | not_pushed (ยังไม่ commit เลย) | local (ไม่มี git)"""
+        g = self.git
+        if not g:
+            return "local"
+        path = f"{rel}/{fn}"
+        if path not in g["committed"]:
+            return "not_pushed"
+        if path in g["modified"]:
+            return "modified"
+        return "ok"
+
+    def _extra_info(self, exdir, name, pushed):
+        full = os.path.join(exdir, name)
+        info = {"name": name, "type": extra_type(name, full)}
+        if info["type"] == "dir":
+            if pushed is not None:
+                kids = [k.split("/", 1)[1] for k in pushed.get(name, []) if "/" in k]
+            else:
+                kids = [os.path.relpath(os.path.join(dp, f), full) for dp, _, fs in os.walk(full) for f in fs]
+            info["n"] = len(kids)
+            info["children"] = sorted(kids)[:8]
+        return info
 
     def cleanup(self):
         shutil.rmtree(self.work, ignore_errors=True)
@@ -1033,15 +1142,30 @@ class Grader:
             near = close_match(ex, [d for d in top if d not in [e["ex"] for e in PROJECTS[self.proj]]], 0.6)
             if near:
                 res["issues"].append(issue("file", L(f"ชื่อโฟลเดอร์ผิด: {near} → ควรเป็น {ex}", f"Wrong folder name: {near} → should be {ex}"), why=char_diff(near, ex),
-                                           fixable=True))
+                                           fixable=True, code="folder_name"))
                 res["renames"].append((near, ex))
                 exdir = os.path.join(self.root, near)
             else:
-                res["issues"].append(issue("file", L(f"ไม่มีโฟลเดอร์ {ex}", f"Folder {ex} is missing"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed")))
+                res["issues"].append(issue("file", L(f"ไม่มีโฟลเดอร์ {ex}", f"Folder {ex} is missing"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed"), code="folder_missing"))
                 res["status"] = L("ไม่มีไฟล์", "Missing file")
                 self._solution(res, spec)
                 return res
-        present = sorted(os.listdir(exdir))
+        rel = os.path.relpath(exdir, self.root)
+        local = sorted(os.listdir(exdir))
+        git = self.git
+        if git:
+            pushed = {}                       # ชื่อในโฟลเดอร์ข้อ → [ไฟล์ข้างใน] (เฉพาะที่ commit แล้ว)
+            for path in git["committed"]:
+                if path.startswith(rel + "/"):
+                    sub = path[len(rel) + 1:]
+                    pushed.setdefault(sub.split("/")[0], []).append(sub)
+            present = sorted(set(pushed) | set(local))
+        else:
+            pushed = None
+            present = local
+        is_pushed = lambda name: pushed is None or name in pushed
+        fc = {"git": bool(git), "dir": rel, "required": [], "extra": [], "local": [], "cmd": ""}
+        res["filecheck"] = fc
         srcs = {}
         used = set()
         if spec["files"] == ["*"]:
@@ -1051,12 +1175,15 @@ class Grader:
                 junk = p in ("a.out", ".DS_Store", prog.get("binary")) or p.endswith((".o", ".swp", "~")) or p.startswith(".")
                 if os.path.isfile(full) and not junk:
                     srcs[p] = read(full)
+                elif junk and not is_pushed(p):
+                    fc["local"].append(p)
                 elif junk:
                     res["issues"].append(issue("file", L(f"มีไฟล์เกินใน {ex}: {p}", f"Extra file in {ex}: {p}"), hint=L("ลบไฟล์ที่ได้จากการคอมไพล์ก่อน push", "Remove build products before pushing"),
-                                               fixable=True))
+                                               fixable=True, code="extra"))
+                    fc["extra"].append(self._extra_info(exdir, p, pushed))
                     res["deletes"].append(f"{os.path.basename(exdir)}/{p}")
             if "Makefile" not in srcs:
-                res["issues"].append(issue("file", L("ไม่มี Makefile", "Makefile is missing"), hint=L("ข้อนี้ต้องส่ง Makefile ที่มี rule all clean fclean", "This exercise needs a Makefile with rules all clean fclean")))
+                res["issues"].append(issue("file", L("ไม่มี Makefile", "Makefile is missing"), hint=L("ข้อนี้ต้องส่ง Makefile ที่มี rule all clean fclean", "This exercise needs a Makefile with rules all clean fclean"), code="missing"))
                 res["status"] = L("ไม่มีไฟล์", "Missing file")
                 res["sources"] = srcs
                 return res
@@ -1066,32 +1193,49 @@ class Grader:
         for fn in spec["files"]:
             if fn in srcs:
                 used.add(fn)
+                fc["required"].append({"name": fn, "state": self._git_state(rel, fn)})
                 continue
-            if fn in present:
+            if fn in present and os.path.isfile(os.path.join(exdir, fn)):
                 srcs[fn] = read(os.path.join(exdir, fn))
                 used.add(fn)
+                st = self._git_state(rel, fn)
+                fc["required"].append({"name": fn, "state": st})
+                if st == "not_pushed":
+                    res["issues"].append(issue("file", L(f"{fn} ยังไม่ได้ push (Moulinette มองไม่เห็นไฟล์นี้)", f"{fn} is not pushed (Moulinette cannot see it)"),
+                                               hint=L(f"git add {rel}/{fn} → git commit → git push", f"git add {rel}/{fn} → git commit → git push"),
+                                               file=fn, code="not_pushed"))
                 continue
             near = close_match(fn, [p for p in present if p not in spec["files"]])
             if near:
                 res["issues"].append(issue("file", L(f"ชื่อไฟล์ผิด: {near} → ควรเป็น {fn}", f"Wrong file name: {near} → should be {fn}"), why=char_diff(near, fn),
                                            hint=L("Moulinette หาไฟล์จากชื่อเป๊ะ ๆ ถ้าชื่อผิดจะได้ 0 ทั้งข้อ", "Moulinette looks for the exact name; a wrong name gives 0 for the exercise"),
-                                           file=near, fixable=True))
+                                           file=near, fixable=True, code="wrong_name"))
                 res["renames"].append((f"{os.path.basename(exdir)}/{near}", f"{ex}/{fn}"))
                 srcs[fn] = read(os.path.join(exdir, near))
                 used.add(near)
+                fc["required"].append({"name": fn, "state": "renamed", "from": near})
             else:
-                res["issues"].append(issue("file", L(f"ไม่มีไฟล์ {fn}", f"Missing file {fn}"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed")))
-        junk = ("a.out", ".DS_Store")
+                res["issues"].append(issue("file", L(f"ไม่มีไฟล์ {fn}", f"Missing file {fn}"), hint=L("ยังไม่ได้ทำ หรือยังไม่ได้ push ข้อนี้", "Not done yet, or not pushed"),
+                                           code="missing"))
+                fc["required"].append({"name": fn, "state": "missing"})
         for p in present:
             if wild:
                 break
             if p in used:
                 continue
-            is_junk = p in junk or p.endswith((".o", ".gch", ".swp", ".bak", "~")) or p.startswith(".")
+            if not is_pushed(p):
+                fc["local"].append(p)         # อยู่ในเครื่องเฉยๆ ไม่ได้ push → ไม่นับ
+                continue
+            info = self._extra_info(exdir, p, pushed)
+            fc["extra"].append(info)
+            is_junk = info["type"] in ("build", "temp") or p in (".DS_Store",)
             res["issues"].append(issue("file", L(f"มีไฟล์เกินใน {ex}: {p}", f"Extra file in {ex}: {p}"),
-                                       hint=L("โจทย์ห้ามมีไฟล์อื่น ลบออกด้วย git rm ก่อน push", "No other files allowed; remove it with git rm before pushing"), fixable=is_junk))
+                                       hint=L("โจทย์ห้ามมีไฟล์อื่น ลบออกด้วย git rm ก่อน push", "No other files allowed; remove it with git rm before pushing"),
+                                       fixable=is_junk and self.mine, code="extra"))
             if is_junk:
                 res["deletes"].append(f"{os.path.basename(exdir)}/{p}")
+        if fc["extra"]:
+            fc["cmd"] = rm_command(rel, fc["extra"])
         for fn, txt in (override or {}).items():
             if fn in srcs or fn in spec["files"]:
                 srcs[fn] = txt
@@ -1104,23 +1248,27 @@ class Grader:
         # header / main / forbidden  (แก้คอมไพล์ก่อน เพราะเลขบรรทัดอ้างอิงไฟล์เดิม)
         fixed = {fn: (self._fix_compile(fn, t, exdir) if fn.endswith(".c") else t) for fn, t in srcs.items()}
         for fn, txt in srcs.items():
-            if spec["type"] in ("make_prog",) and not fn.endswith((".c", ".h")):
-                continue
             if spec["type"] == "shell":
                 continue
             if not has_header(txt):
-                res["issues"].append(issue("rule", L("ไม่มี 42 header", "Missing 42 header"), hint=L("vim: พิมพ์ :Stdheader", "vim: type :Stdheader"), file=fn, line=1,
-                                           fixable=True))
-                fixed[fn] = fix_header(fixed[fn], fn)
+                if needs_header(fn):
+                    res["issues"].append(issue("rule", L("ไม่มี 42 header", "Missing 42 header"), hint=L("vim: พิมพ์ :Stdheader", "vim: type :Stdheader"), file=fn, line=1,
+                                               fixable=True, code="header"))
+                    fixed[fn] = fix_header(fixed[fn], fn)
+                elif spec["type"] in ("script", "make"):
+                    res["issues"].append(issue("tip", L(f"{fn} ไม่มี 42 header (ไม่ผิด)", f"{fn} has no 42 header (that's fine)"),
+                                               hint=L("Norm บังคับ header แค่ไฟล์ .c/.h · ถ้าจะใส่ในไฟล์ .sh ต้องอยู่ใต้บรรทัด #!/bin/sh",
+                                                      "The Norm only requires the header in .c/.h files · in a .sh file it must go below #!/bin/sh"),
+                                               file=fn, code="header_optional"))
             if fn.endswith(".c") and spec["type"] not in ("prog", "make_prog") and main_line(txt):
                 res["issues"].append(issue("rule", L("มีฟังก์ชัน main ในไฟล์ (ห้ามมี)", "File contains a main function (not allowed)"),
                                            hint=L("ลบ main ออก ใช้ main ทดสอบในไฟล์อื่นที่ไม่ได้ push", "Remove main; test with a separate file you do not push"),
-                                           file=fn, line=main_line(txt), fixable=True))
+                                           file=fn, line=main_line(txt), fixable=True, code="main"))
                 fixed[fn] = fix_remove_main(fixed[fn])
 
         # norminette
         norm_issues = self._norm(srcs, exdir)
-        if any(i["title"] == L("ไม่มี 42 header", "Missing 42 header") for i in res["issues"]):
+        if any(i.get("code") == "header" for i in res["issues"]):
             norm_issues = [i for i in norm_issues if not i["why"].startswith("INVALID_HEADER")]
         res["issues"] += norm_issues
         if any(i["fixable"] for i in norm_issues):
@@ -1139,7 +1287,8 @@ class Grader:
                 res["issues"] += iss
             if not any(i["kind"] == "compile" for i in res["issues"]):
                 res["issues"].append(issue("compile", L("คอมไพล์ไม่ผ่าน", "Does not compile") if status == "COMPILE" else
-                                           L("ชื่อฟังก์ชันหรือ prototype ไม่ตรงโจทย์", "Function name or prototype does not match the subject"), why=cc_out.strip()[-600:]))
+                                           L("ชื่อฟังก์ชันหรือ prototype ไม่ตรงโจทย์", "Function name or prototype does not match the subject"), why=cc_out.strip()[-600:],
+                                           code="compile" if status == "COMPILE" else "link"))
             res["status"] = L("คอมไพล์ไม่ผ่าน", "Does not compile") if status == "COMPILE" else L("ใช้กับตัวเทสต์ไม่ได้", "Cannot be used by the tests")
         else:
             res["issues"] += self._forbidden(spec, srcs)
@@ -1150,18 +1299,25 @@ class Grader:
                         cs[k] = en_case(cs[k]) if LANG == "en" and not re.search(r"[A-Za-z0-9$]", re.sub("[\u0e00-\u0e7f ]", "", cs[k])) else cs[k]
             res["cases"] = cases
             if status == "TIMEOUT":
-                res["issues"].append(issue("crash", L(f"ค้างเกิน {TIMEOUT} วินาที", f"Hangs longer than {TIMEOUT} s"), hint=L("วนไม่จบ", "infinite loop")))
+                res["issues"].append(issue("crash", L(f"ค้างเกิน {TIMEOUT} วินาที", f"Hangs longer than {TIMEOUT} s"), hint=L("วนไม่จบ", "infinite loop"), code="timeout"))
             elif status == "CRASH":
-                res["issues"].append(issue("crash", L("โปรแกรมพัง (crash/segfault)", "Program crashed (crash/segfault)")))
+                res["issues"].append(issue("crash", L("โปรแกรมพัง (crash/segfault)", "Program crashed (crash/segfault)"), code="crash"))
             for cs in cases:
                 if not cs["ok"]:
-                    res["issues"].append(issue("logic", cs["name"], why=L(f"ควรได้: {cs.get('exp', '')}\nได้จริง: {cs.get('got', '')}", f"Expected: {cs.get('exp', '')}\nGot: {cs.get('got', '')}")))
+                    res["issues"].append(issue("logic", L(cs["name"], strip_thai(cs["name"])), why=L(f"ควรได้: {cs.get('exp', '')}\nได้จริง: {cs.get('got', '')}", f"Expected: {cs.get('exp', '')}\nGot: {cs.get('got', '')}"),
+                                               code="case"))
             if status != "OK":
                 res["status"] = {"KO": L("ผลลัพธ์ผิด", "Wrong output"), "TIMEOUT": L("ค้าง", "Hangs"), "CRASH": L("พัง", "Crashes")}.get(status, status)
             if status != "OK":
                 res["hints"] = guess_hints(self.proj, ex, cases, status)
-        if res["status"] == "OK" and any(i["kind"] in ("file", "rule", "norm") for i in res["issues"]):
-            res["status"] = L("ผิดกฎ/Norm", "Rule/Norm error")
+        if res["status"] == "OK" and any(i["kind"] in FAIL_KINDS for i in res["issues"]):
+            fails = [i for i in res["issues"] if i["kind"] in FAIL_KINDS]
+            if all(i.get("code") == "not_pushed" for i in fails):
+                res["status"] = L("ยังไม่ได้ push", "Not pushed")
+            elif all(i["kind"] == "file" for i in fails):
+                res["status"] = L("ไฟล์เกิน/ไฟล์ผิด", "Extra or wrong files")
+            else:
+                res["status"] = L("ผิดกฎ/Norm", "Rule/Norm error")
         if res["status"] == "OK" and res["renames"]:
             res["status"] = L("ชื่อไฟล์ผิด", "Wrong file name")
 
@@ -1268,7 +1424,7 @@ class Grader:
                     break
             issues.append(issue("rule", L(f"ใช้ฟังก์ชันต้องห้าม: {shown}", f"Forbidden function used: {shown}"),
                                 hint=L(f"ข้อนี้อนุญาตแค่: {', '.join(spec['allowed']) or 'ไม่มีเลย'}", f"Allowed here: {', '.join(spec['allowed']) or 'nothing'}"),
-                                file=ln[1] if ln else None, line=ln[0] if ln else None))
+                                file=ln[1] if ln else None, line=ln[0] if ln else None, code="forbidden"))
         return issues
 
     def _verify_fixed(self, spec, fixed, exdir):
@@ -1292,7 +1448,7 @@ class Grader:
 
 
 # ───────────────────────── terminal UI ─────────────────────────
-VERSION = "3.0"
+VERSION = "3.1"
 
 
 def dwidth(s):
@@ -1374,13 +1530,14 @@ def print_details(r):
     by_kind = {}
     for i in r["issues"]:
         by_kind.setdefault(i["kind"], []).append(i)
-    for kind in ("file", "rule", "compile", "crash", "norm", "logic"):
+    for kind in ("file", "rule", "compile", "crash", "norm", "logic", "tip"):
         items = by_kind.get(kind, [])
         limit = 8 if kind == "norm" else 6
         for i in items[:limit]:
             where = (L(f"บรรทัด {i['line']}", f"line {i['line']}") + "  ") if i.get("line") else ""
             fx = c("33", " ⚡") if i.get("fixable") else ""
-            print(f"    {dim('│')} {kind_label(kind)} {dim(where)}{i['title']}{fx}")
+            title = dim(i["title"]) if kind == "tip" else i["title"]
+            print(f"    {dim('│')} {kind_label(kind)} {dim(where)}{title}{fx}")
             if kind == "logic" and i.get("why"):
                 for l in i["why"].split("\n")[:2]:
                     print(f"    {dim('│')}            {dim(cut(l, term_width() - 20))}")
@@ -1393,6 +1550,29 @@ def print_details(r):
     for h in r["hints"][:2]:
         print(f"    {dim('│')} 💡 {blue(h)}")
     print()
+
+
+def print_tips(results):
+    """ข้อที่ผ่านแต่มีข้อแนะนำ (เช่น Makefile ไม่มี header)"""
+    for r in results:
+        if r["status"] == "OK":
+            for i in r["issues"]:
+                if i["kind"] == "tip":
+                    print(f"  {dim('💡 ' + r['ex'] + ' · ' + i['title'])}")
+
+
+def print_git_warnings(gs):
+    lines = []
+    if gs["not_pushed"]:
+        lines.append(red(L("⬆ ยังไม่ได้ push: ", "⬆ Not pushed: ")) + ", ".join(gs["not_pushed"]))
+    if gs["modified"]:
+        lines.append(yellow(L("✏️  แก้แล้วยังไม่ commit: ", "✏️  Edited, not committed: ")) + ", ".join(gs["modified"]))
+    if gs["ahead"]:
+        lines.append(yellow(L(f"⬆ มี {gs['ahead']} commit ที่ยังไม่ git push", f"⬆ {gs['ahead']} commit(s) not pushed yet")))
+    if lines:
+        lines.append(dim(L("Moulinette ตรวจเฉพาะที่ push แล้ว → git add · git commit · git push", "Moulinette only grades what is pushed → git add · git commit · git push")))
+        print()
+        box(lines, "33")
 
 
 def progress(i, n, ex):
@@ -1633,7 +1813,7 @@ def after_menu(proj, root, results, mine):
         if act == "quit":
             return
         if act == "report":
-            open_report(write_report(proj, root, results, summarize(results)[1]))
+            open_report(write_report(proj, root, results, summarize(results)[1], mine))
         elif act == "web":
             serve(proj, root, results)
         elif act == "vim":
@@ -1717,21 +1897,37 @@ def offer_fixes(root, results):
 
 
 # ───────────────────────── report ─────────────────────────
-def render_report(proj, root, results, last, editable=False):
+def git_summary(root, results):
+    """สิ่งที่ยังไม่ได้ส่งจริง (เฉพาะงานตัวเอง): ไฟล์ยังไม่ push / แก้ค้าง / commit ที่ยังไม่ push"""
+    out = {"not_pushed": [], "modified": [], "ahead": 0, "git": False}
+    for r in results:
+        fc = r.get("filecheck") or {}
+        out["git"] = out["git"] or fc.get("git", False)
+        for f in fc.get("required", []):
+            if f["state"] in ("not_pushed", "modified"):
+                out[f["state"]].append(f"{fc['dir']}/{f['name']}")
+    g = git_info(root)
+    if g and g.get("ahead"):
+        out["ahead"] = g["ahead"]
+    return out
+
+
+def render_report(proj, root, results, last, editable=False, mine=False):
     tpl = read(os.path.join(LIB, "report.html"))
     data = {"proj": proj, "root": root, "time": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"),
             "last_ok": last, "results": results, "kinds": {k: list(v) for k, v in KIND.items()},
-            "lang": LANG, "editable": editable}
+            "lang": LANG, "editable": editable, "mine": mine or editable,
+            "gitsum": git_summary(root, results) if (mine or editable) else None}
     js = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     return tpl.replace("/*__DATA__*/null", js)
 
 
-def write_report(proj, root, results, last):
+def write_report(proj, root, results, last, mine=False):
     out_dir = os.path.join(os.path.expanduser("~"), "grade_reports")
     os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, f"{proj}_{os.path.basename(root.rstrip('/'))}_{datetime.datetime.now():%m%d_%H%M%S}.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(render_report(proj, root, results, last))
+        f.write(render_report(proj, root, results, last, mine=mine))
     return out
 
 
@@ -1778,7 +1974,7 @@ def serve(proj, root, results):
             if self.path.split("?")[0] != "/":
                 return self._send(404, "{}")
             passed, last = summarize(state["results"])
-            self._send(200, render_report(proj, root, state["results"], last, editable=True), "text/html")
+            self._send(200, render_report(proj, root, state["results"], last, editable=True, mine=True), "text/html")
 
         def do_POST(self):
             try:
@@ -1935,10 +2131,13 @@ def vim_edit(proj, root, results):
 
 # ───────────────────────── main ─────────────────────────
 def grade(proj, root, mine=False, web=True, fix=None, interactive=None, quiet=False):
+    mine = mine and fix is not False
     g = Grader(proj, root, mine)
     if not quiet:
         print()
         print(L(f"  {bold('ตรวจ ' + proj)}  {dim(root)}", f"  {bold('Grading ' + proj)}  {dim(root)}"))
+        print("  " + (c("36", L("🧑 งานของฉัน · แก้ไฟล์ได้", "🧑 My work · files can be edited")) if mine and fix is not False else
+                      c("35", L("👥 งานเพื่อน · ดูอย่างเดียว ไม่แตะไฟล์ (ใช้ --fix ถ้าเป็นงานตัวเอง)", "👥 Peer's work · read only, files are never touched (use --fix if it is yours)"))))
         if not g.has_norm:
             print(yellow(L("  ⚠ ไม่เจอ norminette ในเครื่องนี้ ข้ามการเช็ก norm",
                            "  ⚠ norminette not found on this computer, skipping norm checks")))
@@ -1966,10 +2165,13 @@ def grade(proj, root, mine=False, web=True, fix=None, interactive=None, quiet=Fa
         print()
         for r in bad:
             print_details(r)
+    print_tips(results)
     print_summary(results)
     passed, last = summarize(results)
+    if mine:
+        print_git_warnings(git_summary(root, results))
     if web:
-        path = write_report(proj, root, results, last)
+        path = write_report(proj, root, results, last, mine)
         print(dim(L(f"  หน้าเว็บ: {path}", f"  Web report: {path}")))
         open_report(path)
     if interactive is None:
