@@ -93,6 +93,11 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
 .foot{color:var(--mute);font-size:12px;margin-top:26px}
 .toast{position:fixed;right:20px;bottom:20px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;transition:.2s;pointer-events:none}
 .toast.on{opacity:1}
+.mode{font-size:11px;font-weight:700;border-radius:99px;padding:2px 9px;margin-left:8px;white-space:nowrap}
+.mode.peer{color:#d2a8ff;border:1px solid rgba(210,168,255,.45)} .mode.mine{color:var(--accent);border:1px solid rgba(88,166,255,.45)}
+.gitbar{padding:8px 22px;background:rgba(210,153,34,.1);border-bottom:1px solid rgba(210,153,34,.4);font-size:13px;line-height:1.7}
+.gitbar code{font-family:var(--mono);font-size:12px;background:var(--panel2);padding:1px 6px;border-radius:5px}
+.iss.tip{background:none;border-style:dashed} .iss.tip .k{color:var(--accent)} .iss.tip .t{font-weight:500;color:#c9d1d9}
 @media(max-width:760px){aside{display:none}.stats{display:none}.cmp{grid-template-columns:1fr}}
 </style>
 </head>
@@ -102,6 +107,7 @@ aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;bac
   <div class="meta" id="meta"></div>
   <div class="stats" id="stats"></div>
 </header>
+<div class="gitbar" id="gitbar" style="display:none"></div>
 <main>
   <aside id="side"></aside>
   <div class="content" id="content"></div>
@@ -113,7 +119,9 @@ const D = JSON.parse(document.getElementById('data').textContent);
 const R = D.results, K = D.kinds, EN = D.lang === 'en', EDIT = !!D.editable;
 const T = (th, en) => EN ? en : th;
 document.documentElement.lang = EN ? 'en' : 'th';
+const MINE = !!D.mine;
 let cur = Math.max(0, R.findIndex(r => r.status !== 'OK'));
+const FX = x => (x.fixable && MINE) ? `<span class="fx">⚡ ${T('แก้อัตโนมัติได้','auto-fixable')}</span>` : '';
 let view = 0, fileIdx = 0;
 const ED = {};
 let checkTimer = null, busy = false;
@@ -164,7 +172,16 @@ function hunks(a,b){
 function stats(){
   const pass=R.filter(r=>r.status==='OK').length;
   const first=(R.find(r=>r.status!=='OK')||{}).ex||'—';
-  document.getElementById('meta').innerHTML=`<b style="color:var(--ink)">${esc(D.proj)}</b> · ${esc(D.root)} · ${esc(D.time)}`+(EDIT?`<span class="live">● ${T('แก้ได้','LIVE EDIT')}</span>`:'');
+  document.getElementById('meta').innerHTML=`<b style="color:var(--ink)">${esc(D.proj)}</b> · ${esc(D.root)} · ${esc(D.time)}`+
+    (MINE?`<span class="mode mine">🧑 ${T('งานของฉัน','my work')}</span>`:`<span class="mode peer">👥 ${T('งานเพื่อน · ดูอย่างเดียว','peer · read only')}</span>`)+
+    (EDIT?`<span class="live">● ${T('แก้ได้','LIVE EDIT')}</span>`:'');
+  const G=D.gitsum, gb=document.getElementById('gitbar'), parts=[];
+  if(G){
+    if(G.not_pushed.length) parts.push(`⬆ <b style="color:var(--ko)">${T('ยังไม่ได้ push','not pushed')}:</b> ${G.not_pushed.map(x=>`<code>${esc(x)}</code>`).join(' ')}`);
+    if(G.modified.length) parts.push(`✏️ <b style="color:#f2cc60">${T('แก้แล้วยังไม่ commit','edited, not committed')}:</b> ${G.modified.map(x=>`<code>${esc(x)}</code>`).join(' ')}`);
+    if(G.ahead) parts.push(`⬆ <b style="color:#f2cc60">${T(`มี ${G.ahead} commit ที่ยังไม่ git push`,`${G.ahead} commit(s) not pushed`)}</b>`);
+  }
+  if(parts.length){ gb.style.display=''; gb.innerHTML=parts.join(' &nbsp;·&nbsp; ')+` <span style="color:var(--mute)">— ${T('Moulinette ตรวจเฉพาะที่ push แล้ว','Moulinette only grades what is pushed')}</span>`; }
   document.getElementById('stats').innerHTML=
     `<div class="stat ${pass===R.length?'good':'bad'}"><b>${pass}/${R.length}</b><span>${T('ข้อที่ผ่าน','passed')}</span></div>`+
     `<div class="stat"><b>${esc(D.last_ok)}</b><span>${T('Moulinette ถึง','Moulinette')}</span></div>`+
@@ -286,9 +303,10 @@ function infoHTML(r){
   const ok=r.status==='OK';
   h+=`<div class="title"><h2>${r.ex}</h2><span class="badge ${ok?'ok':'ko'}">${ok?T('ผ่าน','OK'):T('ไม่ผ่าน · ','failed · ')+esc(r.status)}</span><span class="files">${esc(r.files.join(', '))}</span></div>`;
   const loose=r.issues.filter(x=>!x.line && x.kind!=='logic');
-  if(loose.length) h+=`<div class="section"><h3>${T('ปัญหา','Problems')}</h3>`+loose.map(x=>`<div class="iss">${kindTag(x)}<div><div class="t">${esc(x.title)}${x.fixable?`<span class="fx">⚡ ${T('แก้อัตโนมัติได้','auto-fixable')}</span>`:''}</div>${x.why?`<div class="w">${esc(x.why)}</div>`:''}${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
+  const ord=x=>x.kind==='tip'?1:0;
+  if(loose.length) h+=`<div class="section"><h3>${T('ปัญหา','Problems')}</h3>`+loose.sort((a,b)=>ord(a)-ord(b)).map(x=>`<div class="iss ${x.kind==='tip'?'tip':''}">${kindTag(x)}<div><div class="t">${esc(x.title)}${FX(x)}</div>${x.why?`<div class="w">${esc(x.why)}</div>`:''}${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
   const lined=r.issues.filter(x=>x.line);
-  if(lined.length) h+=`<div class="section"><h3>${T('จุดที่ผิดในโค้ด','Problems in the code')} (${lined.length})</h3>`+lined.slice(0,40).map(x=>`<div class="iss link" onclick="jump(${x.line},'${esc(x.file||'')}')">${kindTag(x)}<div><div class="t">${T('บรรทัด','line')} ${x.line}: ${esc(x.title)}${x.fixable?`<span class="fx">⚡ ${T('แก้อัตโนมัติได้','auto-fixable')}</span>`:''}</div>${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
+  if(lined.length) h+=`<div class="section"><h3>${T('จุดที่ผิดในโค้ด','Problems in the code')} (${lined.length})</h3>`+lined.slice(0,40).map(x=>`<div class="iss link" onclick="jump(${x.line},'${esc(x.file||'')}')">${kindTag(x)}<div><div class="t">${T('บรรทัด','line')} ${x.line}: ${esc(x.title)}${FX(x)}</div>${x.hint?`<div class="h">${esc(x.hint)}</div>`:''}</div></div>`).join('')+`</div>`;
   if(r.cases.length){
     const bad=r.cases.filter(c=>!c.ok), good=r.cases.filter(c=>c.ok);
     h+=`<div class="section"><h3>${T('ผลทดสอบ','Tests')} ${good.length}/${r.cases.length}</h3><div class="cases">`+
